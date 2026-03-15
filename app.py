@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import os
 from sqlalchemy import text
@@ -18,6 +19,7 @@ os.makedirs(app.config['PROFILE_FOLDER'], exist_ok=True)
 
 app.config['SECRET_KEY'] = 'change-this-to-a-strong-random-secret-key'
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -25,7 +27,7 @@ login_manager.login_view = 'login'
 
 class Lead(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    client_name = db.Column('name', db.String(100), nullable=False)
     phone = db.Column(db.String(20))
     nrc_number = db.Column(db.String(20))
     amount = db.Column(db.Float, nullable=False)
@@ -34,9 +36,19 @@ class Lead(db.Model):
     nrc_file = db.Column(db.String(200))
     payslip_file = db.Column(db.String(200))
     bank_statement_file = db.Column(db.String(200))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    creator = db.relationship('User', backref='leads')
     due_date = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @property
+    def name(self):
+        return self.client_name
+
+    @name.setter
+    def name(self, value):
+        self.client_name = value
 
 class Settings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -45,15 +57,15 @@ class Settings(db.Model):
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
     
     # New Staff Profile Fields
     full_name = db.Column(db.String(100))
     email = db.Column(db.String(100))
     phone = db.Column(db.String(20))
     dob = db.Column(db.Date)
-    role = db.Column(db.String(50), default="Loan Officer")
+    role = db.Column(db.String(50), default='Agent')  # Options: Admin, Manager, Agent
     profile_pic = db.Column(db.String(255), default='default_avatar.png')
 
 @login_manager.user_loader
@@ -99,6 +111,13 @@ with app.app_context():
         db.session.execute(text("ALTER TABLE lead ADD COLUMN due_date DATE"))
         db.session.commit()
 
+    if 'user_id' not in lead_columns:
+        db.session.execute(text("ALTER TABLE lead ADD COLUMN user_id INTEGER"))
+        admin_user = User.query.filter_by(username='admin').first() or User.query.first()
+        if admin_user:
+            db.session.execute(text("UPDATE lead SET user_id = :admin_id WHERE user_id IS NULL"), {"admin_id": admin_user.id})
+        db.session.commit()
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -128,7 +147,13 @@ def dashboard():
         db.session.add(settings)
         db.session.commit()
 
-    leads = Lead.query.all()
+    # Managers and Admins see everything.
+    if current_user.role in ['Admin', 'Manager']:
+        leads = Lead.query.all()
+    else:
+        # Agents see only their assigned leads.
+        leads = Lead.query.filter_by(user_id=current_user.id).all()
+
     revenue = sum(l.amount for l in leads if l.status == 'Closed Deal')
     
     # Use the goal from database instead of a hardcoded number
@@ -137,9 +162,9 @@ def dashboard():
 
     # ... keep your other counts (total, contacted, etc.) ...
     total = len(leads)
-    contacted_count = Lead.query.filter_by(status='Contacted').count()
-    negot_count = Lead.query.filter_by(status='Negotiation').count()
-    closed_deals = Lead.query.filter_by(status='Closed Deal').count()
+    contacted_count = sum(1 for l in leads if l.status == 'Contacted')
+    negot_count = sum(1 for l in leads if l.status == 'Negotiation')
+    closed_deals = sum(1 for l in leads if l.status == 'Closed Deal')
     
     return render_template('dashboard.html', 
                            leads=leads, 
@@ -153,20 +178,16 @@ def dashboard():
                            negot_count=negot_count,
                            closed_deals=closed_deals)
 
-@app.route('/add', methods=['GET', 'POST'])
+@app.route('/add', methods=['GET'])
+@login_required
 def add_page():
-    if request.method == 'POST':
-        name = request.form['name']
-        amount = float(request.form['amount'])
-        lead = Lead(name=name, amount=amount)
-        db.session.add(lead)
-        db.session.commit()
-        return redirect(url_for('dashboard'))
     return render_template('add.html')
 
-# Update your save route to catch the notes
+# Accepts both the new POST /add flow and legacy /save_lead form action.
+@app.route('/add', methods=['POST'])
 @app.route('/save_lead', methods=['POST'])
-def save_lead():
+@login_required
+def add_lead():
     # 1. Handle File Uploads
     def save_file(field_name):
         file = request.files.get(field_name)
@@ -179,11 +200,17 @@ def save_lead():
     due_date_raw = request.form.get('due_date')
     due_date = datetime.strptime(due_date_raw, '%Y-%m-%d').date() if due_date_raw else None
 
+    client_name = request.form.get('client_name') or request.form.get('name')
+    if not client_name:
+        flash("Client name is required.", "danger")
+        return redirect(url_for('add_page'))
+
     new_lead = Lead(
-        name=request.form.get('name'),
+        client_name=client_name,
         phone=request.form.get('phone'),
         nrc_number=request.form.get('nrc_number'),
         amount=float(request.form.get('amount')),
+        user_id=current_user.id,
         due_date=due_date,
         notes=request.form.get('notes'),
         nrc_file=save_file('nrc_file'),
@@ -192,7 +219,7 @@ def save_lead():
     )
     db.session.add(new_lead)
     db.session.commit()
-    flash(f"Success! {request.form.get('name')}'s application has been registered.", "success")
+    flash(f"Success! {client_name}'s application has been registered.", "success")
     return redirect(url_for('dashboard'))
 
 @app.route('/update_status/<int:id>/<string:new_status>')
@@ -223,7 +250,7 @@ def update_lead(id):
     lead = Lead.query.get_or_404(id)
     
     # Update the fields with the new data from the form
-    lead.name = request.form.get('name')
+    lead.client_name = request.form.get('name')
     lead.phone = request.form.get('phone')
     lead.nrc_number = request.form.get('nrc_number')
     lead.amount = float(request.form.get('amount'))
@@ -231,7 +258,7 @@ def update_lead(id):
     lead.notes = request.form.get('notes')
     
     db.session.commit()
-    flash(f"Profile for {lead.name} updated successfully!", "success")
+    flash(f"Profile for {lead.client_name} updated successfully!", "success")
     return redirect(url_for('dashboard'))
 
 @app.route('/delete_lead/<int:id>')
@@ -309,7 +336,7 @@ def upcoming_report():
                            total_expected=total_expected,
                            due_this_week=due_this_week)
 
-@app.route('/create_staff', methods=['GET', 'POST'])
+@app.route('/create_staff', methods=['GET'])
 @login_required
 def create_staff():
     # Optional: Only let the 'admin' create other users
@@ -317,26 +344,78 @@ def create_staff():
         flash("You don't have permission to create staff.", "danger")
         return redirect(url_for('dashboard'))
 
-    if request.method == 'POST':
-        user = request.form.get('username')
-        passw = request.form.get('password')
-
-        # Check if user already exists
-        exists = User.query.filter_by(username=user).first()
-        if exists:
-            flash("Username already taken!", "danger")
-        else:
-            # HASH the password before saving
-            hashed_password = generate_password_hash(passw, method='pbkdf2:sha256')
-            new_user = User(username=user, password=hashed_password)
-            db.session.add(new_user)
-            db.session.commit()
-            flash(f"Staff account for {user} created!", "success")
-
     return render_template('create_staff.html')
 
 
+@app.route('/create_staff', methods=['POST'])
+@login_required
+def create_staff_post():
+    if current_user.username != 'admin':
+        flash("You don't have permission to create staff.", "danger")
+        return redirect(url_for('dashboard'))
 
+    username = request.form.get('username')
+    password = request.form.get('password')
+    role = request.form.get('role', 'Agent')
+
+    if role not in ['Agent', 'Manager', 'Admin']:
+        role = 'Agent'
+
+    if not username or not password:
+        flash("Username and password are required.", "danger")
+        return redirect(url_for('create_staff'))
+
+    exists = User.query.filter_by(username=username).first()
+    if exists:
+        flash("Username already taken!", "danger")
+        return redirect(url_for('create_staff'))
+
+    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+    new_user = User(username=username, password=hashed_password, role=role)
+    db.session.add(new_user)
+    db.session.commit()
+    flash(f"Staff account for {username} created as {role}!", "success")
+    return redirect(url_for('create_staff'))
+
+
+@app.route('/admin/staff')
+@login_required
+def manage_staff():
+    # Only allow the admin user to see this page.
+    if current_user.username != 'admin':
+        flash("Access denied: Admins only.", "danger")
+        return redirect(url_for('dashboard'))
+
+    all_staff = User.query.all()
+    return render_template('manage_staff.html', staff_list=all_staff)
+
+
+@app.route('/admin/staff/delete/<int:user_id>', methods=['POST'])
+@login_required
+def delete_staff(user_id):
+    if current_user.username != 'admin':
+        flash("Access denied: Admins only.", "danger")
+        return redirect(url_for('dashboard'))
+
+    user_to_delete = User.query.get_or_404(user_id)
+
+    # Prevent admin from deleting themselves.
+    if user_to_delete.id == current_user.id:
+        flash("You cannot delete your own admin account!", "warning")
+    else:
+        db.session.delete(user_to_delete)
+        db.session.commit()
+        flash(f"Staff member {user_to_delete.username} removed.", "success")
+
+    return redirect(url_for('manage_staff'))
+
+
+
+
+with app.app_context():
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['PROFILE_FOLDER'], exist_ok=True)
+    print("✅ Storage Vaults Verified & Ready")
 
 if __name__ == '__main__':
     app.run(debug=True)

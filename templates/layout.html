@@ -23,6 +23,9 @@
             <a href="{{ url_for('settings_page') }}" class="{{ 'active' if request.endpoint == 'settings_page' }}">⚙️ Settings</a>
             {% if current_user.username == 'admin' %}
                 <a href="{{ url_for('create_staff') }}">👤 Add Staff</a>
+                <a href="{{ url_for('manage_staff') }}" class="nav-link">
+                    👥 Manage Staff
+                </a>
             {% endif %}
         </nav>
 
