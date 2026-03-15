@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purple Worth CRM</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>PURPLE WORTH</h2>
+        <p>Admin: Musolechitoti</p>
+    </div>
+
+    <div class="main-content">
+        <h1>Client KYC Registry</h1>
+
+        <section class="form-section">
+            <form action="/add_client" method="POST">
+                <input type="text" name="name" placeholder="Full Name" required>
+                <select name="id_type">
+                    <option value="NRC">NRC</option>
+                    <option value="Passport">Passport</option>
+                </select>
+                <input type="text" name="id_number" placeholder="ID Number" required>
+                <button type="submit" class="btn-save">Add Client</button>
+            </form>
+        </section>
+<div class="search-container">
+    <input type="text" id="searchInput" onkeyup="searchFunction()" placeholder="Search by name or NRC...">
+</div>
+        <table class="client-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>ID Type</th>
+                    <th>ID Number</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients %}
+                <tr>
+                    <td>{{ client.name }}</td>
+                    <td>{{ client.id_type }}</td>
+                    <td>{{ client.id_number }}</td>
+                    <td><span class="status-badge {{ client.status.lower() }}">{{ client.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+<script>
+function searchFunction() {
+    let input = document.getElementById("searchInput").value.toUpperCase();
+    let table = document.querySelector(".client-table");
+    let tr = table.getElementsByTagName("tr");
+
+    for (let i = 1; i < tr.length; i++) {
+        let tdName = tr[i].getElementsByTagName("td")[0];
+        let tdID = tr[i].getElementsByTagName("td")[2];
+        if (tdName || tdID) {
+            let txtValueName = tdName.textContent || tdName.innerText;
+            let txtValueID = tdID.textContent || tdID.innerText;
+            if (txtValueName.toUpperCase().indexOf(input) > -1 || txtValueID.toUpperCase().indexOf(input) > -1) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+}
+</script>
+</body>
+</html>

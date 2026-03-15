@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="document-vault">
+    <h1>KYC Document Vault</h1>
+    <input type="text" id="docSearch" onkeyup="filterDocs()" placeholder="Search client by name or NRC...">
+
+    <table class="client-table" id="docTable">
+        <thead>
+            <tr>
+                <th>Client Name</th>
+                <th>NRC Copy</th>
+                <th>Payslip</th>
+                <th>Bank Statement</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr>
+                <td><strong>{{ lead.name }}</strong></td>
+                <td>
+                    {% if lead.nrc_file %}
+                        <a href="{{ url_for('static', filename='uploads/' + lead.nrc_file) }}" target="_blank" class="btn-view">📄 View NRC</a>
+                    {% else %} <span class="missing">Missing</span> {% endif %}
+                </td>
+                <td>
+                    {% if lead.payslip_file %}
+                        <a href="{{ url_for('static', filename='uploads/' + lead.payslip_file) }}" target="_blank" class="btn-view">📄 View Slip</a>
+                    {% else %} <span class="missing">Missing</span> {% endif %}
+                </td>
+                <td>
+                    {% if lead.bank_statement_file %}
+                        <a href="{{ url_for('static', filename='uploads/' + lead.bank_statement_file) }}" target="_blank" class="btn-view">📄 View Bank</a>
+                    {% else %} <span class="missing">Missing</span> {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function filterDocs() {
+    let input = document.getElementById('docSearch').value.toUpperCase();
+    let rows = document.getElementById('docTable').getElementsByTagName('tr');
+    for (let i = 1; i < rows.length; i++) {
+        let name = rows[i].getElementsByTagName('td')[0].textContent;
+        rows[i].style.display = name.toUpperCase().includes(input) ? "" : "none";
+    }
+}
+</script>
+{% endblock %}

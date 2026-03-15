@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="login-container" style="max-width: 400px; margin: 100px auto; padding: 40px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center;">
+    <img src="{{ url_for('static', filename='nandulu_logo.png') }}" style="width: 100px; margin-bottom: 20px;">
+    <h2 style="color: #0b3d2e;">Staff Login</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="padding: 12px; border-radius: 8px; margin-bottom: 14px; background: #ffecec; color: #8a1f1f;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+        <input type="text" name="username" placeholder="Username" style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ddd;" required>
+        <input type="password" name="password" placeholder="Password" style="width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #ddd;" required>
+        <button type="submit" style="width: 100%; padding: 12px; background: #0b3d2e; color: white; border: none; border-radius: 30px; cursor: pointer;">Enter System</button>
+    </form>
+</div>
+{% endblock %}

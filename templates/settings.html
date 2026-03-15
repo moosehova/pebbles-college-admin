@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="settings-container" style="max-width: 600px; background: white; padding: 30px; border-radius: 12px;">
+    <h1>System Settings</h1>
+    <form action="/save_settings" method="POST">
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label>Company Name</label>
+            <input type="text" name="company_name" value="{{ settings.company_name }}" style="width: 100%; padding: 10px;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label>Monthly Revenue Target (K)</label>
+            <input type="number" name="monthly_goal" value="{{ settings.monthly_goal }}" style="width: 100%; padding: 10px;">
+        </div>
+
+        <button type="submit" class="btn-primary">Update Settings</button>
+    </form>
+</div>
+{% endblock %}

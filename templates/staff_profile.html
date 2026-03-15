@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="profile-card" style="max-width: 600px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <h2 style="color: #0b3d2e;">Staff Profile: {{ current_user.username }}</h2>
+
+    <form action="{{ url_for('update_staff_profile') }}" method="POST" enctype="multipart/form-data">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}"
+                 style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #f1b434;">
+            <br>
+            <label style="cursor: pointer; color: #0b3d2e; font-size: 0.8rem; text-decoration: underline;">
+                Change Photo
+                <input type="file" name="profile_pic" style="display: none;">
+            </label>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px;">
+            <label>Full Name</label>
+            <input type="text" name="full_name" value="{{ current_user.full_name or '' }}" style="padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+
+            <label>Email Address</label>
+            <input type="email" name="email" value="{{ current_user.email or '' }}" style="padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+
+            <label>Phone Number</label>
+            <input type="text" name="phone" value="{{ current_user.phone or '' }}" style="padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+
+            <label>Date of Birth</label>
+            <input type="date" name="dob" value="{{ current_user.dob or '' }}" style="padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 20px; width: 100%; background: #0b3d2e; color: white; padding: 12px; border-radius: 30px; border: none; cursor: pointer;">
+            💾 Update My Details
+        </button>
+    </form>
+</div>
+{% endblock %}

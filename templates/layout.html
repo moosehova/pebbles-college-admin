@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Purple Worth CRM</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo-container">
+            <div class="logo-circle">
+                <img src="{{ url_for('static', filename='nandulu_logo.png') }}" alt="Nandulu Logo">
+            </div>
+            <h2>NANDULU</h2>
+            <small>MONEY LENDERS</small>
+        </div>
+        <nav>
+            <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">📊 Dashboard</a>
+            <a href="{{ url_for('upcoming_report') }}" class="{{ 'active' if request.endpoint == 'upcoming_report' }}">📅 Collection List</a>
+            <a href="{{ url_for('add_page') }}" class="{{ 'active' if request.endpoint == 'add_page' }}">➕ New Application</a>
+            <a href="{{ url_for('documents_page') }}" class="{{ 'active' if request.endpoint == 'documents_page' }}">📁 Document Vault</a>
+            <a href="{{ url_for('settings_page') }}" class="{{ 'active' if request.endpoint == 'settings_page' }}">⚙️ Settings</a>
+            {% if current_user.username == 'admin' %}
+                <a href="{{ url_for('create_staff') }}">👤 Add Staff</a>
+            {% endif %}
+        </nav>
+
+        {% if current_user.is_authenticated %}
+        <div class="sidebar-footer" style="margin-top: auto; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+
+                <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.profile_pic else 'default_avatar.png')) }}"
+                     style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #f1b434; background-color: #eee;"
+                     alt="Profile">
+
+                <div style="overflow: hidden;">
+                    <p style="color: white; margin: 0; font-size: 0.9rem; font-weight: bold; white-space: nowrap; text-overflow: ellipsis;">
+                        {{ current_user.full_name if current_user.full_name else current_user.username }}
+                    </p>
+                    <a href="{{ url_for('staff_profile_page') }}" style="color: #f1b434; text-decoration: none; font-size: 0.75rem; display: block;">
+                        View Profile
+                    </a>
+                </div>
+            </div>
+
+            <a href="{{ url_for('logout') }}" class="logout-btn">🔒 Logout</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
