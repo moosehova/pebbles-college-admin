@@ -145,37 +145,40 @@ def logout():
 @app.route('/')
 @login_required
 def dashboard():
-    # 1. Get the base list of leads based on role
+    # 1. Get settings with a fallback
+    app_settings = Settings.query.first()
+
+    # If settings don't exist yet, use 50000 as a default
+    monthly_target = (
+        app_settings.target_amount
+        if app_settings and getattr(app_settings, 'target_amount', None)
+        else 50000
+    )
+
+    # 2. Get leads based on role
     if current_user.role in ['Admin', 'Manager']:
         leads = Lead.query.all()
     else:
         leads = Lead.query.filter_by(user_id=current_user.id).all()
 
-    # 2. Calculate the Revenue (sum of closed deals)
+    # 2. Ensure total_revenue is always a number
     closed_leads = [l for l in leads if l.status == 'Closed Deal']
-    total_revenue = sum(l.amount for l in closed_leads if l.amount)
+    total_revenue = sum(l.amount for l in closed_leads if l.amount) or 0
 
-    # 3. Existing Stats
+    # 3. Calculate percentage safely
+    percentage = (total_revenue / max(monthly_target, 1)) * 100
+
     stats = {
         'total': len(leads),
         'contacted': len([l for l in leads if l.status == 'Contacted']),
         'negotiating': len([l for l in leads if l.status == 'Negotiation']),
         'closed': len(closed_leads),
-        'revenue': f"K{total_revenue:,.2f}"
+        'revenue_val': total_revenue,
+        'target_val': monthly_target,
+        'target_percent': min(percentage, 100)
     }
 
-    # Keep existing dashboard metrics for current template blocks.
-    settings = Settings.query.first()
-    if not settings:
-        settings = Settings(monthly_goal=100000.0)
-        db.session.add(settings)
-        db.session.commit()
-
-    revenue = total_revenue
-    goal = settings.monthly_goal
-    percent = (revenue / goal * 100) if goal > 0 else 0
-    
-    return render_template('dashboard.html', leads=leads, stats=stats)
+    return render_template('dashboard.html', leads=leads, stats=stats, current_date=datetime.utcnow().date())
 
 @app.route('/add', methods=['GET'])
 @login_required
