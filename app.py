@@ -9,14 +9,12 @@ from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///final_loan_crm.db'
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = 'static/storage/uploads'
+app.config['PROFILE_FOLDER'] = 'static/storage/profile_pics'
 
-PROFILE_UPLOAD_FOLDER = 'static/profile_pics'
-app.config['PROFILE_UPLOAD_FOLDER'] = PROFILE_UPLOAD_FOLDER
-
-# Create the folder if it doesn't exist
-if not os.path.exists(PROFILE_UPLOAD_FOLDER):
-    os.makedirs(PROFILE_UPLOAD_FOLDER)
+# Ensure the folders exist locally for testing
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['PROFILE_FOLDER'], exist_ok=True)
 
 app.config['SECRET_KEY'] = 'change-this-to-a-strong-random-secret-key'
 db = SQLAlchemy(app)
@@ -279,7 +277,7 @@ def update_staff_profile():
         file = request.files['profile_pic']
         if file.filename != '':
             filename = secure_filename(f"user_{current_user.id}_{file.filename}")
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file.save(os.path.join(app.config['PROFILE_FOLDER'], filename))
             current_user.profile_pic = filename
 
     # Update other fields
