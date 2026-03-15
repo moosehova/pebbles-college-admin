@@ -57,8 +57,16 @@ class Lead(db.Model):
 
 class Settings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    monthly_goal = db.Column(db.Float, default=100000.0)
+    target_amount = db.Column('monthly_goal', db.Float, default=100000.0)
     company_name = db.Column(db.String(100), default="Purple Worth Studios")
+
+    @property
+    def monthly_goal(self):
+        return self.target_amount
+
+    @monthly_goal.setter
+    def monthly_goal(self, value):
+        self.target_amount = value
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -148,12 +156,10 @@ def dashboard():
     # 1. Get settings with a fallback
     app_settings = Settings.query.first()
 
-    # If settings don't exist yet, use 50000 as a default
-    monthly_target = (
-        app_settings.target_amount
-        if app_settings and getattr(app_settings, 'target_amount', None)
-        else 50000
-    )
+    if app_settings and app_settings.target_amount:
+        monthly_target = app_settings.target_amount
+    else:
+        monthly_target = 50000  # Only use this if the DB is empty
 
     # 2. Get leads based on role
     if current_user.role in ['Admin', 'Manager']:
@@ -280,18 +286,39 @@ def documents_page():
 def settings_page():
     settings = Settings.query.first()
     if not settings:
-        settings = Settings(monthly_goal=100000.0)
+        settings = Settings(target_amount=100000.0)
         db.session.add(settings)
         db.session.commit()
     return render_template('settings.html', settings=settings)
 
+
+@app.route('/settings', methods=['POST'])
+@login_required
+def update_settings():
+    # Try to get the existing settings row
+    app_settings = Settings.query.first()
+
+    if not app_settings:
+        # If no settings exist, create them
+        app_settings = Settings()
+        db.session.add(app_settings)
+
+    # Update the values from the form
+    target_raw = request.form.get('target_amount') or request.form.get('monthly_goal') or 50000
+    try:
+        app_settings.target_amount = float(target_raw)
+    except (TypeError, ValueError):
+        app_settings.target_amount = 50000
+
+    app_settings.company_name = request.form.get('company_name', 'Nandulu')
+
+    db.session.commit()
+    flash("Settings updated successfully!", "success")
+    return redirect(url_for('settings_page'))
+
 @app.route('/save_settings', methods=['POST'])
 def save_settings():
-    settings = Settings.query.first()
-    settings.monthly_goal = float(request.form.get('monthly_goal'))
-    settings.company_name = request.form.get('company_name')
-    db.session.commit()
-    return redirect(url_for('settings_page'))
+    return update_settings()
 
 @app.route('/staff/profile')
 @login_required
