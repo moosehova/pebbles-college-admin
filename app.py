@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import os
-from sqlalchemy import text
+from sqlalchemy import text, func
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, date, timedelta
@@ -145,43 +145,37 @@ def logout():
 @app.route('/')
 @login_required
 def dashboard():
-    # Get settings or create default if none exist
+    # 1. Get the base list of leads based on role
+    if current_user.role in ['Admin', 'Manager']:
+        leads = Lead.query.all()
+    else:
+        leads = Lead.query.filter_by(user_id=current_user.id).all()
+
+    # 2. Calculate the Revenue (sum of closed deals)
+    closed_leads = [l for l in leads if l.status == 'Closed Deal']
+    total_revenue = sum(l.amount for l in closed_leads if l.amount)
+
+    # 3. Existing Stats
+    stats = {
+        'total': len(leads),
+        'contacted': len([l for l in leads if l.status == 'Contacted']),
+        'negotiating': len([l for l in leads if l.status == 'Negotiation']),
+        'closed': len(closed_leads),
+        'revenue': f"K{total_revenue:,.2f}"
+    }
+
+    # Keep existing dashboard metrics for current template blocks.
     settings = Settings.query.first()
     if not settings:
         settings = Settings(monthly_goal=100000.0)
         db.session.add(settings)
         db.session.commit()
 
-    # Managers and Admins see everything.
-    if current_user.role in ['Admin', 'Manager']:
-        leads = Lead.query.all()
-    else:
-        # Agents see only their assigned leads.
-        leads = Lead.query.filter_by(user_id=current_user.id).all()
-
-    revenue = sum(l.amount for l in leads if l.status == 'Closed Deal')
-    
-    # Use the goal from database instead of a hardcoded number
+    revenue = total_revenue
     goal = settings.monthly_goal
     percent = (revenue / goal * 100) if goal > 0 else 0
-
-    # ... keep your other counts (total, contacted, etc.) ...
-    total = len(leads)
-    contacted_count = sum(1 for l in leads if l.status == 'Contacted')
-    negot_count = sum(1 for l in leads if l.status == 'Negotiation')
-    closed_deals = sum(1 for l in leads if l.status == 'Closed Deal')
     
-    return render_template('dashboard.html', 
-                           leads=leads, 
-                           revenue=revenue,
-                           monthly_goal=goal,
-                           goal_percentage=round(percent, 1),
-                           display_percent=min(percent, 100),
-                           current_date=datetime.utcnow().date(),
-                           total=total,
-                           contacted_count=contacted_count,
-                           negot_count=negot_count,
-                           closed_deals=closed_deals)
+    return render_template('dashboard.html', leads=leads, stats=stats)
 
 @app.route('/add', methods=['GET'])
 @login_required
