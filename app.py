@@ -9,7 +9,12 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///final_loan_crm.db'
+
+# Get the path to the current folder
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+# Point to the single, permanent database on disk
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'static/storage/nandulu_production.db')
 app.config['UPLOAD_FOLDER'] = 'static/storage/uploads'
 app.config['PROFILE_FOLDER'] = 'static/storage/profile_pics'
 
