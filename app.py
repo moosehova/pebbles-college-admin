@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import os
+from PIL import Image
 from sqlalchemy import text, func
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -15,6 +16,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Point to the single, permanent database on disk
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'static/storage/nandulu_production.db')
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = 'static/storage/uploads'
 app.config['PROFILE_FOLDER'] = 'static/storage/profile_pics'
 
@@ -25,6 +27,38 @@ os.makedirs(app.config['PROFILE_FOLDER'], exist_ok=True)
 app.config['SECRET_KEY'] = 'change-this-to-a-strong-random-secret-key'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'}
+
+
+def save_compressed_image(file, folder, filename):
+    os.makedirs(folder, exist_ok=True)
+
+    name_root, _ = os.path.splitext(filename)
+    compressed_filename = f"{name_root}.jpg"
+    filepath = os.path.join(folder, compressed_filename)
+
+    file.stream.seek(0)
+    img = Image.open(file)
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
+    img.thumbnail((1000, 1000), Image.Resampling.LANCZOS)
+    img.save(filepath, "JPEG", quality=70, optimize=True)
+
+    return compressed_filename
+
+
+def save_uploaded_file(file, folder, filename):
+    os.makedirs(folder, exist_ok=True)
+
+    _, extension = os.path.splitext(filename)
+    if extension.lower() in IMAGE_EXTENSIONS:
+        return save_compressed_image(file, folder, filename)
+
+    filepath = os.path.join(folder, filename)
+    file.save(filepath)
+    return filename
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -200,9 +234,9 @@ def add_lead():
     def save_file(field_name):
         file = request.files.get(field_name)
         if file and file.filename != '':
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return filename
+            timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
+            filename = secure_filename(f"lead_{current_user.id}_{timestamp}_{file.filename}")
+            return save_uploaded_file(file, app.config['UPLOAD_FOLDER'], filename)
         return None
 
     due_date_raw = request.form.get('due_date')
@@ -213,6 +247,14 @@ def add_lead():
         flash("Client name is required.", "danger")
         return redirect(url_for('add_page'))
 
+    try:
+        nrc_file = save_file('nrc_file')
+        payslip_file = save_file('payslip_file')
+        bank_statement_file = save_file('bank_statement_file')
+    except (OSError, ValueError):
+        flash("One of the uploaded files is not a valid image or document.", "danger")
+        return redirect(url_for('add_page'))
+
     new_lead = Lead(
         client_name=client_name,
         phone=request.form.get('phone'),
@@ -221,9 +263,9 @@ def add_lead():
         user_id=current_user.id,
         due_date=due_date,
         notes=request.form.get('notes'),
-        nrc_file=save_file('nrc_file'),
-        payslip_file=save_file('payslip_file'),
-        bank_statement_file=save_file('bank_statement_file')
+        nrc_file=nrc_file,
+        payslip_file=payslip_file,
+        bank_statement_file=bank_statement_file
     )
     db.session.add(new_lead)
     db.session.commit()
@@ -313,7 +355,7 @@ def update_settings():
     app_settings.company_name = request.form.get('company_name', 'Nandulu')
 
     db.session.commit()
-    flash("Settings updated successfully!", "success")
+    flash("Settings have been updated successfully!")
     return redirect(url_for('settings_page'))
 
 @app.route('/save_settings', methods=['POST'])
@@ -325,6 +367,26 @@ def save_settings():
 def staff_profile_page():
     return render_template('staff_profile.html')
 
+
+@app.route('/upload_profile', methods=['POST'])
+@login_required
+def upload_profile():
+    file = request.files.get('profile_pic')
+    if file and file.filename:
+        filename = f"user_{current_user.id}.jpg"
+        try:
+            current_user.profile_pic = save_compressed_image(
+                file,
+                app.config['PROFILE_FOLDER'],
+                filename,
+            )
+            db.session.commit()
+            flash("Profile photo updated successfully!", "success")
+        except (OSError, ValueError):
+            flash("Please upload a valid image file.", "danger")
+
+    return redirect(url_for('settings_page'))
+
 @app.route('/staff/profile/update', methods=['POST'])
 @login_required
 def update_staff_profile():
@@ -333,8 +395,15 @@ def update_staff_profile():
         file = request.files['profile_pic']
         if file.filename != '':
             filename = secure_filename(f"user_{current_user.id}_{file.filename}")
-            file.save(os.path.join(app.config['PROFILE_FOLDER'], filename))
-            current_user.profile_pic = filename
+            try:
+                current_user.profile_pic = save_compressed_image(
+                    file,
+                    app.config['PROFILE_FOLDER'],
+                    filename,
+                )
+            except (OSError, ValueError):
+                flash("Please upload a valid image file.", "danger")
+                return redirect(url_for('staff_profile_page'))
 
     # Update other fields
     current_user.full_name = request.form.get('full_name')

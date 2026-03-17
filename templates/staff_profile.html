@@ -5,7 +5,7 @@
 
     <form action="{{ url_for('update_staff_profile') }}" method="POST" enctype="multipart/form-data">
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}"
+            <img src="{{ url_for('static', filename='storage/profile_pics/' + current_user.profile_pic) }}"
                  style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #f1b434;">
             <br>
             <label style="cursor: pointer; color: #0b3d2e; font-size: 0.8rem; text-decoration: underline;">

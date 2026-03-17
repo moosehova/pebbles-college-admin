@@ -7,6 +7,22 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message shadow flash-{{ category }}">
+                    <strong>
+                        {% if category == 'success' %} ✅ Success:
+                        {% elif category == 'danger' %} ❌ Error:
+                        {% else %} ℹ️ Notice:
+                        {% endif %}
+                    </strong>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <div class="sidebar">
         <div class="logo-container">
             <div class="logo-circle">
@@ -31,19 +47,23 @@
 
         {% if current_user.is_authenticated %}
         <div class="sidebar-footer" style="margin-top: auto; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px;">
+                <!-- The Profile Image / Avatar -->
+                <div style="width: 50px; height: 50px; min-width: 50px;">
+                    {% if current_user.profile_pic and current_user.profile_pic != "" %}
+                        <img src="{{ url_for('static', filename='storage/profile_pics/' + current_user.profile_pic) }}" 
+                             style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid #f1c40f;"
+                             onerror="this.src='https://ui-avatars.com/api/?name={{ current_user.username }}&background=f1c40f&color=0b3d2e&bold=true'">
+                    {% else %}
+                        <img src="https://ui-avatars.com/api/?name={{ current_user.username }}&background=f1c40f&color=0b3d2e&bold=true" 
+                             style="width: 100%; height: 100%; border-radius: 50%; border: 2px solid #f1c40f;">
+                    {% endif %}
+                </div>
 
-                <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.profile_pic else 'default_avatar.png')) }}"
-                     style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #f1b434; background-color: #eee;"
-                     alt="Profile">
-
-                <div style="overflow: hidden;">
-                    <p style="color: white; margin: 0; font-size: 0.9rem; font-weight: bold; white-space: nowrap; text-overflow: ellipsis;">
-                        {{ current_user.full_name if current_user.full_name else current_user.username }}
-                    </p>
-                    <a href="{{ url_for('staff_profile_page') }}" style="color: #f1b434; text-decoration: none; font-size: 0.75rem; display: block;">
-                        View Profile
-                    </a>
+                <!-- The Username & Link -->
+                <div>
+                    <h4 style="margin: 0; color: white; font-size: 1rem;">{{ current_user.username }}</h4>
+                    <a href="{{ url_for('settings_page') }}" style="color: #f1c40f; font-size: 0.8rem; text-decoration: none;">View Profile</a>
                 </div>
             </div>
 
