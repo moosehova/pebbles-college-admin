@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="owlio-card" style="max-width: 800px; margin: 0 auto;">
+    <div class="owlio-header"><h3 class="owlio-title">Enroll New Student</h3></div>
+    <form action="{{ url_for('enroll_student') }}" method="POST">
+        <div class="owlio-grid">
+            <div class="owlio-form-group">
+                <label class="owlio-label">First Name</label>
+                <input type="text" name="first_name" class="owlio-input" required>
+            </div>
+            <div class="owlio-form-group">
+                <label class="owlio-label">Last Name</label>
+                <input type="text" name="last_name" class="owlio-input" required>
+            </div>
+            <div class="owlio-form-group">
+                <label class="owlio-label">Date of Birth</label>
+                <input type="date" name="dob" class="owlio-input" required>
+            </div>
+            <div class="owlio-form-group">
+                <label class="owlio-label">Assign Environment</label>
+                <select name="class_id" class="owlio-select">
+                    {% for env in environments %}
+                    <option value="{{ env.id }}">{{ env.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <br>
+        <div class="owlio-form-group">
+            <label class="owlio-label">Authorized Pick-up Persons</label>
+            <textarea name="pickup_auth" class="owlio-input" rows="3" placeholder="Names and phone numbers of people allowed to collect the child..."></textarea>
+        </div>
+        <button type="submit" class="owlio-btn" style="margin-top: 30px;">Complete Enrollment</button>
+    </form>
+</div>
+{% endblock %}

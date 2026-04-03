@@ -1,23 +1,63 @@
 {% extends "layout.html" %}
+
 {% block content %}
-<div class="login-container" style="max-width: 400px; margin: 100px auto; padding: 40px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center;">
-    <img src="{{ url_for('static', filename='nandulu_logo.png') }}" style="width: 100px; margin-bottom: 20px;">
-    <h2 style="color: #0b3d2e;">Staff Login</h2>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div style="padding: 12px; border-radius: 8px; margin-bottom: 14px; background: #ffecec; color: #8a1f1f;">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <form method="POST" action="{{ url_for('login') }}">
-        <input type="text" name="username" placeholder="Username" style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ddd;" required>
-        <input type="password" name="password" placeholder="Password" style="width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #ddd;" required>
-        <button type="submit" style="width: 100%; padding: 12px; background: #0b3d2e; color: white; border: none; border-radius: 30px; cursor: pointer;">Enter System</button>
-    </form>
+<div style="text-align: center; margin-bottom: 40px; padding-top: 50px;">
+    {% if school_settings.school_logo %}
+    <img src="{{ url_for('static', filename='uploads/' ~ school_settings.school_logo) }}" alt="{{ school_settings.school_name }} logo" style="max-height: 72px; margin-bottom: 14px; width: auto; border-radius: 8px;" onerror="this.style.display='none';">
+    {% endif %}
+    <h1 style="color: #1e3a8a; font-weight: 800; font-size: 2.5rem;">{{ school_settings.school_name }}</h1>
+    <p style="color: #64748b; font-size: 1.2rem;">Official Learning & Management Portal</p>
 </div>
+<div class="login-grid" style="display: grid; grid-template-columns: minmax(280px, 420px) minmax(320px, 460px); justify-content: center; align-items: center; gap: 24px; min-height: 50vh;">
+    <div class="owlio-card" style="padding: 34px; border-left: 6px solid #facc15; background: linear-gradient(135deg, #fffbea 0%, #fef3c7 100%);">
+        <div style="display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,0.75); color: #92400e; font-size: 0.76rem; font-weight: 900; letter-spacing: 0.7px; text-transform: uppercase;">
+            <i class="fas fa-star"></i>
+            {{ login_highlight.title }}
+        </div>
+        <h2 style="margin: 18px 0 10px; color: #1e293b; font-size: 1.9rem; line-height: 1.15;">{{ login_highlight.message }}</h2>
+        <p style="margin: 0; color: #475569; font-size: 0.98rem; line-height: 1.7;">{{ login_highlight.detail }}</p>
+        <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div style="background: rgba(255,255,255,0.78); border-radius: 14px; padding: 14px; text-align: center;">
+                <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Behavior</div>
+                <div style="margin-top: 6px; font-weight: 900; color: #92400e;">Merits</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.78); border-radius: 14px; padding: 14px; text-align: center;">
+                <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Academics</div>
+                <div style="margin-top: 6px; font-weight: 900; color: #166534;">Grades</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.78); border-radius: 14px; padding: 14px; text-align: center;">
+                <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Safety</div>
+                <div style="margin-top: 6px; font-weight: 900; color: #1e3a8a;">Attendance</div>
+            </div>
+        </div>
+    </div>
+    <div class="owlio-card"
+        style="width: 100%; max-width: 400px; padding: 40px; border-top: 5px solid var(--primary-blue);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="color: var(--primary-blue); font-weight: 800; margin-bottom: 10px;">Welcome Back</h2>
+            <p style="color: #64748b; font-size: 0.85rem;">Login to Pebbles Command Center</p>
+        </div>
+        <form method="POST" action="">
+            <div class="owlio-form-group">
+                <label class="owlio-label">Username</label>
+                <input type="text" name="username" class="owlio-input" required autofocus>
+            </div>
+            <br>
+            <div class="owlio-form-group">
+                <label class="owlio-label">Password</label>
+                <input type="password" name="password" class="owlio-input" required>
+            </div>
+            <button type="submit" class="owlio-btn" style="width: 100%; margin-top: 30px; padding: 15px;">
+                SIGN IN
+            </button>
+        </form>
+    </div>
+</div>
+<style>
+    @media (max-width: 900px) {
+        .login-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 {% endblock %}

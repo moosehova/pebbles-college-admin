@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">Journey Notes</h2>
+    <p class="page-subtitle">Record developmental milestones and Montessori observations.</p>
+</div>
+
+<div class="owlio-grid" style="grid-template-columns: 1fr 2fr;">
+    <div class="owlio-card">
+        <div class="owlio-header"><h3 class="owlio-title">New Observation</h3></div>
+        <form action="/academics/save_observation" method="POST">
+            <div class="owlio-form-group">
+                <label class="owlio-label">Select Child</label>
+                <select name="student_id" class="owlio-select" required>
+                    {% for student in students %}
+                    <option value="{{ student.id }}">{{ student.first_name }} {{ student.last_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <br>
+            <div class="owlio-form-group">
+                <label class="owlio-label">Title / Milestone</label>
+                <input type="text" name="title" class="owlio-input" placeholder="e.g. Mastered Pink Tower" required>
+            </div>
+            <br>
+            <div class="owlio-form-group">
+                <label class="owlio-label">Detailed Note</label>
+                <textarea name="note" class="owlio-input" rows="4" placeholder="Describe the moment..."></textarea>
+            </div>
+            <button type="submit" class="owlio-btn" style="width: 100%; margin-top: 20px;">Save Journey Note</button>
+        </form>
+    </div>
+
+    <div class="owlio-card">
+        <div class="owlio-header"><h3 class="owlio-title">Recent Timeline</h3></div>
+        {% for obs in observations %}
+        <div style="border-left: 3px solid var(--primary-blue); padding-left: 20px; margin-bottom: 25px; position: relative;">
+            <div style="font-size: 0.75rem; color: gray;">{{ obs.date.strftime('%d %b, %Y') }}</div>
+            <div style="font-weight: 700; color: var(--primary-blue);">{{ obs.student.first_name }} - {{ obs.title }}</div>
+            <p style="margin: 5px 0 0; font-size: 0.9rem; color: #475569;">{{ obs.note }}</p>
+        </div>
+        {% else %}
+        <p class="text-muted">No observations recorded yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

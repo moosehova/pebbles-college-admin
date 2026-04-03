@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">Manage Environments</h2>
+    <p class="page-subtitle">Create and organize your Montessori rooms and Primary grades.</p>
+</div>
+
+<div class="owlio-grid" style="grid-template-columns: 1fr 2fr;">
+    <div class="owlio-card">
+        <div class="owlio-header"><h3 class="owlio-title">New Environment</h3></div>
+        <form action="/academics/create_env" method="POST">
+            <div class="owlio-form-group">
+                <label class="owlio-label">Room/Grade Name</label>
+                <input type="text" name="name" class="owlio-input" placeholder="e.g. Willow Room" required>
+            </div>
+            <br>
+            <div class="owlio-form-group">
+                <label class="owlio-label">Level</label>
+                <select name="level" class="owlio-select">
+                    <option value="Toddler">Montessori Toddler (1-3y)</option>
+                    <option value="Primary">Montessori Primary (3-6y)</option>
+                    <option value="Lower Elementary">Lower Elementary (G1-3)</option>
+                    <option value="Upper Elementary">Upper Elementary (G4-7)</option>
+                </select>
+            </div>
+            <button type="submit" class="owlio-btn" style="width: 100%; margin-top: 20px;">Create Room</button>
+        </form>
+    </div>
+
+    <div class="owlio-card" style="padding: 0; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th style="padding: 20px; text-align: left; font-size: 0.75rem; color: gray;">ROOM NAME</th>
+                    <th style="padding: 20px; text-align: left; font-size: 0.75rem; color: gray;">LEVEL</th>
+                    <th style="padding: 20px; text-align: left; font-size: 0.75rem; color: gray;">STUDENTS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for env in environments %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 20px; font-weight: 600;">{{ env.name }}</td>
+                    <td style="padding: 20px; color: #64748b;">{{ env.level }}</td>
+                    <td style="padding: 20px;"><span class="status-badge active">{{ env.students|length }} Kids</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

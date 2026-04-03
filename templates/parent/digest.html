@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">Weekly Parent Digest</h2>
+    <p class="page-subtitle">A quick intelligence summary for {{ student.first_name }} {{ student.last_name }}.</p>
+</div>
+
+<div class="owlio-card" style="border-left: 6px solid #facc15; background: linear-gradient(135deg, #fffbea 0%, #fef3c7 100%);">
+    <div style="display: flex; align-items: center; gap: 10px; color: #92400e; font-weight: 800; margin-bottom: 8px;">
+        <i class="fas fa-star"></i>
+        <span>Weekly Proud Moment</span>
+    </div>
+    <p style="margin: 0; color: #1e293b; font-size: 1rem; font-weight: 700;">{{ nudge }}</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 18px; margin-bottom: 18px;">
+    <div class="owlio-card" style="margin-bottom: 0; text-align: center; border-bottom: 4px solid #0ea5e9;">
+        <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Attendance</div>
+        <div style="font-size: 1.6rem; font-weight: 900; color: #0369a1;">{{ attendance_rate }}%</div>
+    </div>
+    <div class="owlio-card" style="margin-bottom: 0; text-align: center; border-bottom: 4px solid #22c55e;">
+        <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Average Grade</div>
+        <div style="font-size: 1.6rem; font-weight: 900; color: #166534;">{{ avg_grade }}%</div>
+    </div>
+    <div class="owlio-card" style="margin-bottom: 0; text-align: center; border-bottom: 4px solid #f59e0b;">
+        <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Merits</div>
+        <div style="font-size: 1.6rem; font-weight: 900; color: #92400e;">{{ merits }}</div>
+    </div>
+    <div class="owlio-card" style="margin-bottom: 0; text-align: center; border-bottom: 4px solid #ef4444;">
+        <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Demerits</div>
+        <div style="font-size: 1.6rem; font-weight: 900; color: #991b1b;">{{ demerits }}</div>
+    </div>
+</div>
+
+<div class="owlio-grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div class="owlio-card" style="margin-bottom: 0;">
+        <div class="owlio-header"><h3 class="owlio-title">Recent Grades</h3></div>
+        {% for grade in recent_grades %}
+        <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+            <div>
+                <div style="font-weight: 700; color: #1e293b;">{{ grade.subject }}</div>
+                <div style="font-size: 0.75rem; color: #94a3b8;">{{ grade.created_at.strftime('%d %b %Y') }}</div>
+            </div>
+            <div style="font-weight: 900; color: {{ '#166534' if grade.score >= 50 else '#991b1b' }};">{{ '%.1f'|format(grade.score) }}%</div>
+        </div>
+        {% else %}
+        <p style="color: #64748b; margin: 0;">No grades recorded this week.</p>
+        {% endfor %}
+    </div>
+
+    <div class="owlio-card" style="margin-bottom: 0;">
+        <div class="owlio-header"><h3 class="owlio-title">Attendance Trend</h3></div>
+        {% for record in attendance_records %}
+        <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+            <div style="font-weight: 700; color: #334155;">{{ record.date.strftime('%A, %d %b') }}</div>
+            <div style="font-weight: 800; color: {% if record.status == 'Present' %}#166534{% elif record.status == 'Absent' %}#991b1b{% else %}#0369a1{% endif %};">{{ record.status }}</div>
+        </div>
+        {% else %}
+        <p style="color: #64748b; margin: 0;">No attendance records available this week.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

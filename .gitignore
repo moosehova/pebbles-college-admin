@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+env/
+venv/
+.env
+
+# Database
+instance/
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (We want the folder, but not the test images)
+static/uploads/*
+!static/uploads/.gitkeep

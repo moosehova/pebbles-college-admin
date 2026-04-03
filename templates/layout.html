@@ -1,79 +1,243 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Purple Worth CRM</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>{{ school_settings.school_name }} ERP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-message shadow flash-{{ category }}">
-                    <strong>
-                        {% if category == 'success' %} ✅ Success:
-                        {% elif category == 'danger' %} ❌ Error:
-                        {% else %} ℹ️ Notice:
-                        {% endif %}
-                    </strong>
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
+    {% if current_user.is_authenticated %}
     <div class="sidebar">
-        <div class="logo-container">
-            <div class="logo-circle">
-                <img src="{{ url_for('static', filename='nandulu_logo.png') }}" alt="Nandulu Logo">
+        <div class="sidebar-header" style="padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08);">
+            {% if school_config and school_config.school_logo %}
+                <img src="{{ url_for('static', filename='uploads/' + school_config.school_logo) }}?v={{ school_logo_version }}"
+                     alt="{{ school_config.school_name }} logo"
+                     style="max-width: 80%; max-height: 70px; width: auto; border-radius: 8px;"
+                     onerror="this.style.display='none'; document.getElementById('sidebar-logo-fallback').style.display='inline-flex';">
+            {% endif %}
+            <div id="sidebar-logo-fallback" style="display: {% if school_config and school_config.school_logo %}none{% else %}inline-flex{% endif %}; width: 56px; height: 56px; border-radius: 14px; background: #fbbf24; color: #0f172a; font-weight: 900; align-items: center; justify-content: center; margin: 0 auto 10px;">
+                {{ (school_config.school_name[0] if school_config and school_config.school_name else 'P')|upper }}
             </div>
-            <h2>NANDULU</h2>
-            <small>MONEY LENDERS</small>
+            <h3 style="color: white; margin: 10px 0 0; font-size: 1rem; font-weight: 800; line-height: 1.3;">
+                {{ school_config.school_name if school_config else 'Pebbles Admin' }}
+            </h3>
+            <p style="margin: 5px 0 0; color: rgba(255,255,255,0.62); font-size: 0.7rem; letter-spacing: 0.4px; text-transform: uppercase;">
+                {% if current_user.role == 'admin' %}Admin Console{% else %}Parent Portal{% endif %}
+            </p>
         </div>
-        <nav>
-            <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">📊 Dashboard</a>
-            <a href="{{ url_for('upcoming_report') }}" class="{{ 'active' if request.endpoint == 'upcoming_report' }}">📅 Collection List</a>
-            <a href="{{ url_for('add_page') }}" class="{{ 'active' if request.endpoint == 'add_page' }}">➕ New Application</a>
-            <a href="{{ url_for('documents_page') }}" class="{{ 'active' if request.endpoint == 'documents_page' }}">📁 Document Vault</a>
-            <a href="{{ url_for('settings_page') }}" class="{{ 'active' if request.endpoint == 'settings_page' }}">⚙️ Settings</a>
-            {% if current_user.username == 'admin' %}
-                <a href="{{ url_for('create_staff') }}">👤 Add Staff</a>
-                <a href="{{ url_for('manage_staff') }}" class="nav-link">
-                    👥 Manage Staff
+        <nav class="sidebar-nav">
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('dashboard') }}" class="sidebar-link">
+                <i class="fas fa-th-large"></i> <span>Dashboard</span>
+            </a>
+                <small class="nav-header">ACADEMICS</small>
+                <a href="{{ url_for('manage_academics') }}" class="sidebar-link"><i class="fas fa-school"></i> Environments</a>
+                <a href="{{ url_for('school_calendar') }}" class="sidebar-link"><i class="fas fa-calendar-alt"></i> School Calendar</a>
+                <a href="{{ url_for('attendance') }}" class="sidebar-link"><i class="fas fa-check-circle"></i> Daily Attendance</a>
+                <a href="{{ url_for('edit_grades') }}" class="sidebar-link"><i class="fas fa-wand-magic-sparkles"></i> Smart Reports</a>
+                <a href="{{ url_for('subject_stats') }}" class="sidebar-link"><i class="fas fa-ranking-star"></i> Department Analytics</a>
+                <a href="{{ url_for('promotion_hub') }}" class="sidebar-link"><i class="fas fa-graduation-cap"></i> Promotion Hub</a>
+                <div class="nav-section-title" style="padding: 20px 30px 5px; color: rgba(255,255,255,0.3); font-size: 0.65rem; text-transform: uppercase;">People</div>
+                <a href="{{ url_for('enroll_student') }}" class="sidebar-link">
+                    <i class="fas fa-user-plus"></i> <span>Enroll Student</span>
+                </a>
+                <a href="{{ url_for('view_students') }}" class="sidebar-link">
+                    <i class="fas fa-users"></i> <span>Student Directory</span>
+                </a>
+                <a href="{{ url_for('create_parent') }}" class="sidebar-link">
+                    <i class="fas fa-key"></i> <span>Parent Access</span>
+                </a>
+                <a href="{{ url_for('staff_hub') }}" class="sidebar-link">
+                    <i class="fas fa-users-cog"></i> <span>Staff & Payroll</span>
+                </a>
+                <small class="nav-header">FINANCE & HR</small>
+                <a href="{{ url_for('finance_intelligence') }}" class="sidebar-link"><i class="fas fa-brain"></i> Finance Intelligence</a>
+                <a href="{{ url_for('fee_collection') }}" class="sidebar-link"><i class="fas fa-wallet"></i> Fee Collection</a>
+                <a href="{{ url_for('staff_hub') }}" class="sidebar-link"><i class="fas fa-users-cog"></i> Staff & Payroll</a>
+                <a href="{{ url_for('expenses') }}" class="sidebar-link"><i class="fas fa-receipt"></i> Expense Ledger</a>
+                <a href="{{ url_for('inventory_hub') }}" class="sidebar-link"><i class="fas fa-boxes"></i> <span>Inventory Hub</span></a>
+                <a href="{{ url_for('new_announcement') }}" class="sidebar-link">
+                    <i class="fas fa-bullhorn"></i> <span>Post Announcement</span>
+                </a>
+                <small class="nav-header">SYSTEM</small>
+                <a href="{{ url_for('school_settings') }}" class="sidebar-link">
+                    <i class="fas fa-cog"></i> <span>Settings Hub</span>
                 </a>
             {% endif %}
         </nav>
+        <!-- Bottom logout removed for decluttered UI; now in top bar only -->
+    </div>
+    {% endif %}
 
-        {% if current_user.is_authenticated %}
-        <div class="sidebar-footer" style="margin-top: auto; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <div style="display: flex; align-items: center; gap: 10px; padding: 10px;">
-                <!-- The Profile Image / Avatar -->
-                <div style="width: 50px; height: 50px; min-width: 50px;">
-                    {% if current_user.profile_pic and current_user.profile_pic != "" %}
-                        <img src="{{ url_for('static', filename='storage/profile_pics/' + current_user.profile_pic) }}" 
-                             style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid #f1c40f;"
-                             onerror="this.src='https://ui-avatars.com/api/?name={{ current_user.username }}&background=f1c40f&color=0b3d2e&bold=true'">
-                    {% else %}
-                        <img src="https://ui-avatars.com/api/?name={{ current_user.username }}&background=f1c40f&color=0b3d2e&bold=true" 
-                             style="width: 100%; height: 100%; border-radius: 50%; border: 2px solid #f1c40f;">
+        <div class="main-content">
+            {% if current_user.is_authenticated %}
+            <header class="top-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: white; border-bottom: 1px solid #edf2f7; position: sticky; top: 0; z-index: 100;">
+                <div class="search-area" style="display: flex; align-items: center; gap: 15px;">
+                    <i class="fas fa-bars" id="toggle-sidebar" style="cursor: pointer; color: #64748b;"></i>
+                    {% if current_user.role == 'admin' %}
+                    <div style="position: relative; margin-left: 20px;">
+                        <form action="{{ url_for('search_student') }}" method="GET" style="display: flex; align-items: center; background: #f1f5f9; border-radius: 20px; padding: 5px 15px;">
+                            <i class="fas fa-search" style="color: #94a3b8; margin-right: 8px;"></i>
+                            <input type="text" id="globalSearch" name="q" placeholder="Jump to student..." autocomplete="off" value="{{ request.args.get('q', '') }}" style="border: none; background: none; outline: none; font-size: 0.9rem; width: 180px;">
+                        </form>
+                        <div id="searchResults" style="position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12); z-index: 1200; display: none; max-height: 280px; overflow-y: auto;"></div>
+                    </div>
                     {% endif %}
                 </div>
-
-                <!-- The Username & Link -->
-                <div>
-                    <h4 style="margin: 0; color: white; font-size: 1rem;">{{ current_user.username }}</h4>
-                    <a href="{{ url_for('settings_page') }}" style="color: #f1c40f; font-size: 0.8rem; text-decoration: none;">View Profile</a>
+                <div class="user-controls" style="display: flex; align-items: center; gap: 25px;">
+                    <div style="display: flex; gap: 20px; color: #64748b; font-size: 1.1rem;">
+                        <a href="{{ url_for('inbox') }}" style="position: relative; cursor: pointer; color: inherit; text-decoration: none;">
+                            <i class="far fa-bell" style="font-size: 1.2rem;"></i>
+                            {% set unread_count = current_user.received_messages|selectattr('is_read', 'equalto', false)|list|length %}
+                            {% if unread_count > 0 %}
+                                <span style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.6rem; font-weight: 800; border: 2px solid white;">
+                                    {{ unread_count }}
+                                </span>
+                            {% endif %}
+                        </a>
+                                <a href="{{ url_for('staff_chat_page') }}" style="color: inherit; text-decoration: none;">
+                                    <i class="far fa-comment-dots"></i>
+                                </a>
+                    </div>
+                    <div class="profile-dropdown" style="position: relative; cursor: pointer; padding: 5px 10px; border-radius: 8px; transition: background 0.2s;" onclick="toggleDropdown()">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="text-align: right;">
+                                <div style="font-weight: 800; font-size: 1rem; color: #1e293b; line-height: 1.2;">
+                                    {{ current_user.username }}
+                                </div>
+                                <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">
+                                    {{ current_user.role }}
+                                </div>
+                            </div>
+                            <div style="width: 45px; height: 45px; background: #1e3a8a; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; font-weight: 800; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                                {{ current_user.username[0].upper() }}
+                            </div>
+                            <i class="fas fa-chevron-down" style="font-size: 0.8rem; color: #94a3b8; margin-left: 5px;"></i>
+                        </div>
+                        <div id="userMenu" style="display: none; position: absolute; right: 0; top: 60px; background: white; width: 200px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; z-index: 1000;">
+                            <div style="padding: 15px 20px; border-bottom: 1px solid #f1f5f9;">
+                                <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Signed in as</p>
+                                <p style="margin: 0; font-weight: 700; color: #1e293b;">{{ current_user.username }}</p>
+                            </div>
+                            <a href="#" style="display: flex; align-items: center; padding: 12px 20px; color: #475569; text-decoration: none; font-size: 0.95rem; transition: background 0.2s;">
+                                <i class="far fa-user" style="width: 20px; margin-right: 12px;"></i> My Profile
+                            </a>
+                            <a href="/logout" style="display: flex; align-items: center; padding: 12px 20px; color: #ef4444; text-decoration: none; font-size: 0.95rem; font-weight: 600; border-top: 1px solid #f1f5f9;">
+                                <i class="fas fa-sign-out-alt" style="width: 20px; margin-right: 12px;"></i> Logout
+                            </a>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <a href="{{ url_for('logout') }}" class="logout-btn">🔒 Logout</a>
+            </header>
+            {% endif %}
+                        <div class="container" style="padding: 0 30px; position: fixed; top: 20px; width: 100%; z-index: 9999; max-width: 500px; left: 50%; transform: translateX(-50%);">
+                                {% with messages = get_flashed_messages(with_categories=true) %}
+                                    {% if messages %}
+                                        {% for category, message in messages %}
+                                            <div class="alert alert-{{ category }} fade-out" style="padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid transparent; 
+                                                {% if category == 'danger' %} background-color: #fee2e2; color: #991b1b; border-color: #fecaca;
+                                                {% elif category == 'success' %} background-color: #d1fae5; color: #065f46; border-color: #a7f3d0;
+                                                {% else %} background-color: #e0f2fe; color: #0369a1; border-color: #bae6fd; {% endif %}">
+                                                <i class="fas {% if category == 'danger' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+                                                {{ message }}
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endwith %}
+                        </div>
+                        <script>
+                                // Auto-hide messages after 4 seconds so they don't stack up
+                                setTimeout(function() {
+                                        let alerts = document.querySelectorAll('.alert');
+                                        alerts.forEach(alert => {
+                                                alert.style.transition = "opacity 0.5s ease";
+                                                alert.style.opacity = "0";
+                                                setTimeout(() => alert.remove(), 500);
+                                        });
+                                }, 4000);
+                        </script>
+                        {% block content %}
+                        {% endblock %}
         </div>
-        {% endif %}
-    </div>
+<script>
+function toggleDropdown() {
+    var menu = document.getElementById("userMenu");
+    if (menu.style.display === "none" || menu.style.display === "") {
+        menu.style.display = "block";
+    } else {
+        menu.style.display = "none";
+    }
+}
+window.onclick = function(event) {
+    if (!event.target.closest('.profile-dropdown')) {
+        var menu = document.getElementById("userMenu");
+        if (menu) menu.style.display = "none";
+    }
 
-    <div class="main-content">
-        {% block content %}{% endblock %}
-    </div>
+    if (!event.target.closest('#globalSearch') && !event.target.closest('#searchResults')) {
+        var resultsBox = document.getElementById('searchResults');
+        if (resultsBox) {
+            resultsBox.style.display = 'none';
+        }
+    }
+}
+
+const searchInput = document.getElementById('globalSearch');
+const resultsBox = document.getElementById('searchResults');
+const autocompleteUrl = "{{ url_for('search_autocomplete') }}";
+
+function escapeHtml(value) {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+if (searchInput && resultsBox) {
+    searchInput.addEventListener('input', function () {
+        const query = this.value.trim();
+        if (query.length < 2) {
+            resultsBox.style.display = 'none';
+            resultsBox.innerHTML = '';
+            return;
+        }
+
+        fetch(`${autocompleteUrl}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!Array.isArray(data) || data.length === 0) {
+                    resultsBox.style.display = 'none';
+                    resultsBox.innerHTML = '';
+                    return;
+                }
+
+                resultsBox.innerHTML = data.map(item => {
+                    const studentName = escapeHtml(item.name || 'Student');
+                    const envName = escapeHtml(item.environment || 'General');
+                    return `
+                        <a href="/student/profile/${item.id}" style="display: block; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #0f172a; text-decoration: none;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-user-graduate" style="color: #f59e0b;"></i>
+                                <div>
+                                    <div style="font-size: 0.88rem; font-weight: 700;">${studentName}</div>
+                                    <div style="font-size: 0.74rem; color: #64748b;">${envName}</div>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+
+                resultsBox.style.display = 'block';
+            })
+            .catch(() => {
+                resultsBox.style.display = 'none';
+                resultsBox.innerHTML = '';
+            });
+    });
+}
+</script>
 </body>
 </html>

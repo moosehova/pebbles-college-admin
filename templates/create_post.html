@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">Post School Announcement</h2>
+    <p class="page-subtitle">Share updates, events, and important news with all parents.</p>
+</div>
+
+<div class="owlio-card" style="max-width: 700px; margin: 0 auto; padding: 40px;">
+    <form action="{{ url_for('new_announcement') }}" method="POST">
+        <div class="owlio-form-group">
+            <label class="owlio-label">Announcement Title</label>
+            <input type="text" name="title" class="owlio-input" placeholder="e.g. Term 2 School Fees Update" required>
+        </div>
+        <br>
+        <div class="owlio-form-group">
+            <label class="owlio-label">Message Content</label>
+            <textarea name="content" class="owlio-input" rows="6" placeholder="Write your message to the families here..." required></textarea>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <button type="submit" class="owlio-btn" style="width: 100%;">
+                <i class="fas fa-paper-plane"></i> Publish to School Feed
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

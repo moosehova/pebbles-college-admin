@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">Financial Outflow</h2>
+    <p class="page-subtitle">Manage School Expenses and Staff Payroll.</p>
+</div>
+
+<div class="owlio-grid" style="grid-template-columns: 1fr 2fr;">
+    <div class="owlio-card" style="padding: 30px;">
+        <div class="owlio-header"><h3 class="owlio-title">New Transaction</h3></div>
+        
+        <form action="/finance/expenses" method="POST">
+            <div class="owlio-form-group">
+                <label class="owlio-label">Type</label>
+                <select name="category" class="owlio-select" id="expenseType">
+                    <option value="General">General Expense</option>
+                    <option value="Salary">Staff Salary</option>
+                </select>
+            </div>
+            
+            <br>
+            
+            <div class="owlio-form-group" id="staffSelect" style="display:none;">
+                <label class="owlio-label">Select Staff</label>
+                <select name="staff_id" class="owlio-select">
+                    {% for member in staff_list %}
+                    <option value="{{ member.id }}">{{ member.name }} (K {{ member.salary_amount }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="owlio-form-group">
+                <label class="owlio-label">Amount (K)</label>
+                <input type="number" name="amount" class="owlio-input" required>
+            </div>
+
+            <br>
+
+            <div class="owlio-form-group">
+                <label class="owlio-label">Description / Note</label>
+                <textarea name="description" class="owlio-input" rows="2"></textarea>
+            </div>
+
+            <button type="submit" class="owlio-btn" style="width: 100%; margin-top: 20px; background: #e11d48;">
+                <i class="fas fa-receipt"></i> Record Outflow
+            </button>
+        </form>
+    </div>
+
+    <div class="owlio-card" style="padding: 0; overflow: hidden;">
+        <div class="owlio-header" style="padding: 20px 30px;">
+            <h3 class="owlio-title">Expense Ledger</h3>
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                <tr>
+                    <th style="padding: 15px 30px; text-align: left; font-size: 0.7rem; color: #64748b;">CATEGORY</th>
+                    <th style="padding: 15px 30px; text-align: left; font-size: 0.7rem; color: #64748b;">DETAILS</th>
+                    <th style="padding: 15px 30px; text-align: right; font-size: 0.7rem; color: #64748b;">AMOUNT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for exp in expenses %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 15px 30px;">
+                        <span class="badge" style="background: {% if exp.category == 'Salary' %}#dbeafe{% else %}#fee2e2{% endif %}; 
+                                                 color: {% if exp.category == 'Salary' %}#1e40af{% else %}#991b1b{% endif %}; 
+                                                 padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">
+                            {{ exp.category }}
+                        </span>
+                    </td>
+                    <td style="padding: 15px 30px; color: #475569; font-size: 0.9rem;">{{ exp.description }}</td>
+                    <td style="padding: 15px 30px; text-align: right; font-weight: 800; color: #b91c1c;">- K {{ exp.amount }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Show/Hide staff selection if "Salary" is picked
+document.getElementById('expenseType').addEventListener('change', function() {
+    document.getElementById('staffSelect').style.display = this.value === 'Salary' ? 'block' : 'none';
+});
+</script>
+{% endblock %}

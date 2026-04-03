@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">Student Promotion</h2>
+    <p class="page-subtitle">Move students to the next grade or Montessori level.</p>
+</div>
+
+<div class="owlio-card">
+    <form action="/academics/promote_process" method="POST">
+        <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 30px; align-items: center;">
+            
+            <div class="owlio-form-group">
+                <label class="owlio-label">Promote From (Current)</label>
+                <select name="from_env" class="owlio-select" required>
+                    {% for env in environments %}
+                    <option value="{{ env.id }}">{{ env.name }} ({{ env.level }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="font-size: 1.5rem; color: var(--primary-blue); padding-top: 20px;">
+                <i class="fas fa-arrow-right"></i>
+            </div>
+
+            <div class="owlio-form-group">
+                <label class="owlio-label">Promote To (Next Grade)</label>
+                <select name="to_env" class="owlio-select" required>
+                    {% for env in environments %}
+                    <option value="{{ env.id }}">{{ env.name }} ({{ env.level }})</option>
+                    {% endfor %}
+                    <option value="alumni">Graduated / Alumni</option>
+                </select>
+            </div>
+
+        </div>
+
+        <div style="margin-top: 40px; padding: 25px; background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 15px;">
+            <p style="margin: 0; color: #92400e; font-size: 0.9rem;">
+                <i class="fas fa-exclamation-triangle"></i> <strong>Note:</strong> This will update the classroom for <strong>all</strong> students in the selected "From" class. Ensure you have finalized their end-of-year reports first.
+            </p>
+        </div>
+
+        <div style="text-align: right; margin-top: 30px;">
+            <button type="submit" class="owlio-btn" style="background: #166534;">
+                <i class="fas fa-graduation-cap"></i> Execute Bulk Promotion
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="owlio-card" style="margin-top: 30px; border-top: 5px solid var(--primary-blue);">
+    <div class="owlio-header">
+        <h3 class="owlio-title"><i class="fas fa-users"></i> Room Roster Preview</h3>
+        <p style="font-size: 0.8rem; color: gray;">These are the students who will be moved:</p>
+    </div>
+    
+    <div id="studentList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+        {% for env in environments %}
+            <div class="env-group" id="env-{{ env.id }}" style="display: none;">
+                {% for student in env.students %}
+                    <div style="background: #f8fafc; padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; font-weight: 600;">
+                        <i class="fas fa-child" style="color: var(--primary-blue); margin-right: 10px;"></i>
+                        {{ student.first_name }} {{ student.last_name }}
+                    </div>
+                {% else %}
+                    <p style="color: gray; font-style: italic;">No students currently in this room.</p>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+// This script makes the student list change when you pick a different "From" room
+const fromSelect = document.querySelector('select[name="from_env"]');
+function showRoster() {
+    document.querySelectorAll('.env-group').forEach(group => group.style.display = 'none');
+    const selectedId = fromSelect.value;
+    const targetGroup = document.getElementById('env-' + selectedId);
+    if(targetGroup) targetGroup.style.display = 'contents';
+}
+fromSelect.addEventListener('change', showRoster);
+document.addEventListener('DOMContentLoaded', showRoster);
+</script>
+{% endblock %}

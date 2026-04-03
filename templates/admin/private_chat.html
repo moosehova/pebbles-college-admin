@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title"><i class="fas fa-user-friends"></i> Chat with {{ recipient.username }}</h2>
+</div>
+
+<div class="owlio-card" style="max-width: 600px; margin: 0 auto; border-top: 4px solid #d4af37;">
+    <div style="min-height: 300px; padding: 20px 0;">
+        {% if messages %}
+            {% for msg in messages %}
+                <div style="margin-bottom: 18px; display: flex; flex-direction: {{ 'row-reverse' if msg.sender_id == current_user.id else 'row' }}; align-items: flex-end;">
+                    <div style="background: {{ '#e0f2fe' if msg.sender_id == current_user.id else '#f1f5f9' }}; color: #0369a1; padding: 10px 16px; border-radius: 18px; max-width: 70%;">
+                        <div style="font-size: 0.95rem;">{{ msg.content }}</div>
+                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 4px; text-align: right;">{{ msg.timestamp.strftime('%b %d, %H:%M') }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: #94a3b8; text-align: center;">No messages yet. Start the conversation!</p>
+        {% endif %}
+    </div>
+    <form method="post" action="" style="display: flex; gap: 10px; margin-top: 20px;">
+        <input type="text" name="message" placeholder="Type your message..." autocomplete="off" style="flex: 1; padding: 10px 14px; border-radius: 16px; border: 1px solid #cbd5e1; outline: none; font-size: 1rem;">
+        <button type="submit" class="btn btn-primary" style="border-radius: 16px; padding: 10px 18px;">Send</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title"><i class="fas fa-comments"></i> Staff Internal Chat</h2>
+</div>
+
+<div class="owlio-card" style="max-width: 600px; margin: 0 auto; border-top: 4px solid #0369a1;">
+    <p style="color: #64748b; margin-bottom: 20px;">Select a colleague to start a secure conversation.</p>
+    
+    {% for member in staff %}
+    <a href="{{ url_for('private_chat', user_id=member.id) }}" style="text-decoration: none; color: inherit;">
+        <div style="padding: 15px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 15px; transition: background 0.3s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+            <div style="width: 40px; height: 40px; background: #e0f2fe; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #0369a1; font-weight: bold;">
+                {{ member.username[0].upper() }}
+            </div>
+            <div>
+                <h5 style="margin: 0; color: #1e293b;">{{ member.username }}</h5>
+                <small style="color: #94a3b8; text-transform: uppercase; font-size: 0.7rem;">{{ member.role }}</small>
+            </div>
+            <i class="fas fa-chevron-right" style="margin-left: auto; color: #cbd5e1;"></i>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

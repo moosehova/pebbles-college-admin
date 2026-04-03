@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">Department Analytics</h2>
+    <p class="page-subtitle">Subject leaderboard for the last 30 days with AI guidance for school leadership.</p>
+</div>
+
+<div class="owlio-card" style="padding: 24px; border-left: 6px solid #1e3a8a; background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);">
+    <div style="display: flex; justify-content: space-between; gap: 18px; align-items: center; flex-wrap: wrap;">
+        <div>
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.9px; color: #1d4ed8; font-weight: 800;">Principal View</div>
+            <h3 style="margin: 8px 0 4px; color: #0f172a;">Subject Leaderboard</h3>
+            <p style="margin: 0; color: #475569; max-width: 680px;">Use this page to spot strong departments, isolate weak trends early, and act before exam periods tighten the gap.</p>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="owlio-btn" style="text-decoration: none; border: none; background: #0f172a;">
+            <i class="fas fa-chart-pie"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 22px;">
+    <div class="owlio-card" style="margin-bottom: 0; border-bottom: 4px solid #22c55e;">
+        <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Top Department</div>
+        <div style="margin-top: 8px; font-size: 1.35rem; font-weight: 900; color: #166534;">{{ subject_rows[0].subject if subject_rows else 'No Data' }}</div>
+        <div style="margin-top: 6px; color: #475569;">{{ subject_rows[0].avg if subject_rows else 0 }}% average</div>
+    </div>
+    <div class="owlio-card" style="margin-bottom: 0; border-bottom: 4px solid #ef4444;">
+        <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Watchlist</div>
+        <div style="margin-top: 8px; font-size: 1.35rem; font-weight: 900; color: #991b1b;">{{ subject_rows[-1].subject if subject_rows else 'No Data' }}</div>
+        <div style="margin-top: 6px; color: #475569;">{{ subject_rows[-1].avg if subject_rows else 0 }}% average</div>
+    </div>
+    <div class="owlio-card" style="margin-bottom: 0; border-bottom: 4px solid #f59e0b;">
+        <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Tracked Subjects</div>
+        <div style="margin-top: 8px; font-size: 1.35rem; font-weight: 900; color: #92400e;">{{ subject_rows|length }}</div>
+        <div style="margin-top: 6px; color: #475569;">Departments with active grade data</div>
+    </div>
+</div>
+
+<div class="owlio-card" style="padding: 0; overflow: hidden;">
+    <div class="owlio-header" style="padding: 22px 26px; border-bottom: 1px solid #e2e8f0;">
+        <h3 class="owlio-title">30-Day Subject Performance</h3>
+    </div>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #f8fafc;">
+            <tr>
+                <th style="padding: 15px 26px; text-align: left; font-size: 0.72rem; color: #64748b; text-transform: uppercase;">Rank</th>
+                <th style="padding: 15px 26px; text-align: left; font-size: 0.72rem; color: #64748b; text-transform: uppercase;">Subject</th>
+                <th style="padding: 15px 26px; text-align: left; font-size: 0.72rem; color: #64748b; text-transform: uppercase;">Current Avg</th>
+                <th style="padding: 15px 26px; text-align: left; font-size: 0.72rem; color: #64748b; text-transform: uppercase;">Last 30 Days Trend</th>
+                <th style="padding: 15px 26px; text-align: left; font-size: 0.72rem; color: #64748b; text-transform: uppercase;">AI Guidance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in subject_rows %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 18px 26px; font-weight: 900; color: #1e3a8a;">#{{ loop.index }}</td>
+                <td style="padding: 18px 26px; color: #0f172a; font-weight: 800;">{{ row.subject }}</td>
+                <td style="padding: 18px 26px; color: #334155;">
+                    <div style="font-weight: 900; font-size: 1rem;">{{ row.avg }}%</div>
+                    <div style="font-size: 0.78rem; color: #94a3b8;">Previous window: {{ row.previous_avg }}% | {{ row.sample_size }} score{{ '' if row.sample_size == 1 else 's' }}</div>
+                </td>
+                <td style="padding: 18px 26px;">
+                    {% if row.direction == 'up' %}
+                    <span style="display: inline-flex; align-items: center; gap: 6px; color: #166534; font-weight: 800; background: #dcfce7; border-radius: 999px; padding: 6px 12px;">
+                        <i class="fas fa-arrow-trend-up"></i> {{ row.trend }}%
+                    </span>
+                    {% elif row.direction == 'down' %}
+                    <span style="display: inline-flex; align-items: center; gap: 6px; color: #991b1b; font-weight: 800; background: #fee2e2; border-radius: 999px; padding: 6px 12px;">
+                        <i class="fas fa-arrow-trend-down"></i> {{ row.trend|abs }}%
+                    </span>
+                    {% else %}
+                    <span style="display: inline-flex; align-items: center; gap: 6px; color: #475569; font-weight: 800; background: #e2e8f0; border-radius: 999px; padding: 6px 12px;">
+                        <i class="fas fa-minus"></i> Flat
+                    </span>
+                    {% endif %}
+                </td>
+                <td style="padding: 18px 26px; color: #475569; line-height: 1.5;">{{ row.insight }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="padding: 28px 26px; color: #64748b; text-align: center;">No grade data has been captured yet. Enter subject scores to unlock department analytics.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

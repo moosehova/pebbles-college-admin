@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <div>
+        <h2 class="page-title">Student Directory</h2>
+        <p class="page-subtitle">Manage active students with quick intelligence tags and direct Student 360 access.</p>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="owlio-btn" style="text-decoration: none; border: none; background: #0f172a;">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="owlio-card" style="margin-bottom: 18px;">
+    <form method="GET" action="{{ url_for('view_students') }}" style="display: grid; grid-template-columns: minmax(220px, 2fr) minmax(180px, 1fr) auto auto; gap: 10px; align-items: end;">
+        <div>
+            <label class="owlio-label">Search Student</label>
+            <input type="text" name="q" value="{{ query }}" class="owlio-input" placeholder="Type first or last name...">
+        </div>
+        <div>
+            <label class="owlio-label">Environment</label>
+            <select name="env_id" class="owlio-select">
+                <option value="">All Environments</option>
+                {% for env in environments %}
+                <option value="{{ env.id }}" {% if selected_env_id == env.id|string %}selected{% endif %}>{{ env.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="owlio-btn" style="border: none;">
+            <i class="fas fa-filter"></i> Filter
+        </button>
+        <a href="{{ url_for('view_students') }}" class="owlio-btn" style="text-decoration: none; border: none; background: #64748b;">
+            Reset
+        </a>
+    </form>
+</div>
+
+<div class="owlio-card" style="padding: 0; overflow: hidden;">
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #f8fafc;">
+            <tr>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Student</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Environment</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Status</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Fee Balance</th>
+                <th style="padding: 14px 24px; text-align: right; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in student_rows %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 18px 24px; font-weight: 800; color: #0f172a;">
+                    <a href="{{ url_for('student_profile', student_id=row.student.id) }}" style="text-decoration: none; color: inherit;">
+                        {{ row.student.first_name }} {{ row.student.last_name }}
+                    </a>
+                </td>
+                <td style="padding: 18px 24px; color: #475569;">{{ row.student.classroom.name if row.student.classroom else 'General' }}</td>
+                <td style="padding: 18px 24px;">
+                    {% for tag in row.tags %}
+                    <span style="display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 800; margin-right: 6px;
+                        {% if tag.tone == 'paid' %}background: #dcfce7; color: #166534;
+                        {% elif tag.tone == 'finance' %}background: #fef3c7; color: #92400e;
+                        {% elif tag.tone == 'risk' %}background: #fee2e2; color: #991b1b;
+                        {% else %}background: #dbeafe; color: #1e3a8a;{% endif %}
+                    ">
+                        {{ tag.label }}
+                    </span>
+                    {% endfor %}
+                </td>
+                <td style="padding: 18px 24px; color: {{ '#991b1b' if row.balance > 0 else '#166534' }}; font-weight: 800;">K{{ '%.2f'|format(row.balance) }}</td>
+                <td style="padding: 18px 24px; text-align: right;">
+                    <a href="{{ url_for('student_profile', student_id=row.student.id) }}" class="owlio-btn" style="text-decoration: none; border: none; background: #1e3a8a;">
+                        <i class="fas fa-user-graduate"></i> Open Student 360
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="padding: 18px 24px; color: #64748b;">No students matched your filters.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

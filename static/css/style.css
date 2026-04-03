@@ -1,0 +1,220 @@
+/* Top Bar Professional Spacing */
+.top-bar {
+    height: 80px;
+    padding: 0 40px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+/* Hide the actual radio button */
+.att-input {
+    display: none;
+}
+
+/* Base Pill Style */
+.att-pill {
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-block;
+    transition: all 0.2s ease;
+    color: #64748b;
+}
+
+/* Specific Colors on Hover/Select */
+.pill-present:hover { background: #dcfce7; color: #166534; }
+.pill-absent:hover { background: #fee2e2; color: #991b1b; }
+.pill-late:hover { background: #fef3c7; color: #92400e; }
+
+/* The "Magic" - When Radio is Checked */
+.att-input:checked + .pill-present { background: #22c55e; color: white; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3); }
+.att-input:checked + .pill-absent { background: #ef4444; color: white; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
+.att-input:checked + .pill-late { background: #f59e0b; color: white; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); }
+
+/* The Submit Button Glow */
+.owlio-btn {
+    background: var(--primary-blue);
+    color: white;
+    padding: 12px 30px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(0, 74, 173, 0.2);
+    transition: 0.3s;
+}
+
+.owlio-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 25px rgba(0, 74, 173, 0.3);
+}
+:root {
+    --primary-blue: #004aad;
+    --accent-gold: #ffde59;
+    --bg-light: #f4f7f6;
+    --text-main: #1e293b;
+}
+
+body { font-family: 'Inter', sans-serif; background: var(--bg-light); margin: 0; }
+.wrapper { display: flex; min-height: 100vh; }
+
+/* Sidebar with Glowing Effects */
+.sidebar {
+    width: 260px; background: #00122e; color: white;
+    position: fixed; height: 100vh; display: flex; flex-direction: column;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.sidebar-link {
+    padding: 15px 25px; color: rgba(255,255,255,0.6); text-decoration: none;
+    display: flex; align-items: center; gap: 15px; transition: 0.3s;
+}
+
+.sidebar-link:hover, .sidebar-link.active {
+    color: var(--accent-gold); background: rgba(255,255,255,0.05);
+    border-left: 4px solid var(--accent-gold);
+}
+
+.main-content { flex: 1; margin-left: 260px; padding: 40px; }
+
+/* Owlio Cards */
+.owlio-card {
+    background: white; border-radius: 20px; padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);
+}
+:root {
+    --primary-blue: #002d62; /* Pebbles Navy */
+    --accent-gold: #d4af37;  /* Pebbles Gold */
+    --bg-light: #f4f7fa;
+    --text-main: #1e293b;
+    --sidebar-width: 260px;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-main);
+    margin: 0;
+    display: flex;
+}
+
+/* Sidebar Styling */
+.sidebar {
+    width: var(--sidebar-width);
+    background: var(--primary-blue);
+    height: 100vh;
+    position: fixed;
+    color: white;
+    padding-top: 20px;
+}
+
+.sidebar-brand {
+    padding: 20px 30px;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--accent-gold);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 15px 30px;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.sidebar-link:hover, .sidebar-link.active {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border-left: 4px solid var(--accent-gold);
+}
+
+.sidebar-link i { margin-right: 15px; width: 20px; }
+
+/* Main Content Area */
+.main-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    padding: 40px;
+}
+
+/* Premium Card Design */
+.owlio-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.03);
+    margin-bottom: 30px;
+    padding: 30px;
+}
+
+/* Input & Button Polish */
+.owlio-input, .owlio-select {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    background: #fdfdfd;
+    transition: 0.3s;
+    box-sizing: border-box; /* Fixes the "extending" issue */
+}
+
+.owlio-input:focus {
+    border-color: var(--primary-blue);
+    background: white;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(0, 45, 98, 0.1);
+}
+
+.owlio-btn {
+    background: var(--primary-blue);
+    color: white;
+    padding: 14px 28px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.owlio-btn:hover {
+    background: #001a3a;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+}
+
+/* Scrollable sidebar menu for deep navigation stacks */
+.sidebar {
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 50px;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}

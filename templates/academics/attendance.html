@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">Daily Register</h2>
+    <p class="page-subtitle">Marking for: {{ date }}</p>
+</div>
+
+<div class="owlio-card" style="margin-bottom: 20px;">
+    <form action="/attendance" method="GET">
+        <select name="env_id" onchange="this.form.submit()" class="owlio-select">
+            <option value="">-- Select Environment --</option>
+            {% for env in environments %}
+            <option value="{{ env.id }}" {% if selected_env and selected_env.id == env.id %}selected{% endif %}>{{ env.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+{% if selected_env %}
+<div class="owlio-card">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="padding: 15px; margin-bottom: 20px; border-radius: 10px; background: #dcfce7; color: #166534; border: 1px solid #166534;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="/save_attendance" method="POST">
+        <input type="hidden" name="env_id" value="{{ selected_env.id }}">
+        <input type="hidden" name="date" value="{{ date }}">
+
+        <table style="width: 100%; margin-bottom: 20px;">
+            {% for student in students %}
+            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.3s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 20px 30px;">
+                    <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">{{ student.first_name }} {{ student.last_name }}</div>
+                    <div style="font-size: 0.75rem; color: #64748b;">ID: PBC-00{{ student.id }}</div>
+                </td>
+                <td style="padding: 20px 30px; text-align: right;">
+                    <div class="attendance-toggle-group" style="display: inline-flex; background: #f1f5f9; padding: 5px; border-radius: 12px; gap: 5px;">
+                        <label class="att-label">
+                            <input type="radio" name="status_{{ student.id }}" value="Present" checked class="att-input">
+                            <span class="att-pill pill-present">Present</span>
+                        </label>
+                        <label class="att-label">
+                            <input type="radio" name="status_{{ student.id }}" value="Absent" class="att-input">
+                            <span class="att-pill pill-absent">Absent</span>
+                        </label>
+                        <label class="att-label">
+                            <input type="radio" name="status_{{ student.id }}" value="Late" class="att-input">
+                            <span class="att-pill pill-late">Late</span>
+                        </label>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <button type="submit" class="owlio-btn" style="width: 100%;">
+            Confirm & Save Register
+        </button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header no-print">
+    <h2 class="page-title">Monthly Progress Report</h2>
+    <p class="page-subtitle">Generating report for {{ student.first_name }} - {{ month_name }} {{ year }}</p>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+        <a href="{{ url_for('student_profile', student_id=student.id) }}" class="owlio-btn" style="text-decoration: none; background: #0f172a; border: none;">
+            <i class="fas fa-user-graduate"></i> Back to Student 360
+        </a>
+        <button onclick="window.print()" class="owlio-btn" style="border: none;">
+            <i class="fas fa-print"></i> Print Report
+        </button>
+    </div>
+</div>
+
+<div class="owlio-card report-paper">
+    <div style="text-align: center; border-bottom: 2px solid var(--primary-blue); padding-bottom: 20px; margin-bottom: 30px;">
+        {% if school_settings.school_logo %}
+        <img src="{{ url_for('static', filename='uploads/' ~ school_settings.school_logo) }}" alt="{{ school_settings.school_name }} logo" style="max-height: 66px; margin-bottom: 10px; width: auto;" onerror="this.style.display='none';">
+        {% endif %}
+        <h1 style="margin: 0; color: var(--primary-blue); text-transform: uppercase;">{{ school_settings.school_name }}</h1>
+        <p style="margin: 0; letter-spacing: 2px; font-weight: 700;">OFFICIAL PROGRESS REPORT</p>
+        <p style="margin: 5px 0 0; font-style: italic;">Academic Year: {{ school_settings.academic_year }}</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px;">
+        <div>
+            <h4 style="color: gray; margin-bottom: 5px;">STUDENT NAME</h4>
+            <div style="font-size: 1.2rem; font-weight: 800;">{{ student.first_name }} {{ student.last_name }}</div>
+            <br>
+            <h4 style="color: gray; margin-bottom: 5px;">ENVIRONMENT</h4>
+            <div style="font-weight: 600;">{{ student.classroom.name }}</div>
+        </div>
+        <div style="text-align: right;">
+            <div class="attendance-circle" style="display: inline-block; padding: 20px; border: 5px solid var(--accent-gold); border-radius: 50%; text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 900;">{{ att_percent }}%</div>
+                <div style="font-size: 0.6rem; font-weight: 700;">ATTENDANCE</div>
+            </div>
+        </div>
+    </div>
+
+    <h3 style="border-left: 5px solid var(--accent-gold); padding-left: 15px; margin-bottom: 20px;">Monthly Journey & Milestones</h3>
+    <div class="milestones-list">
+        {% for obs in observations %}
+        <div style="margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+            <strong style="color: var(--primary-blue);">{{ obs.title }}</strong>
+            <p style="margin: 5px 0; font-size: 0.95rem; line-height: 1.6;">{{ obs.note }}</p>
+        </div>
+        {% else %}
+        <p>No specific milestones recorded this month. Focus was on general Montessori exploration.</p>
+        {% endfor %}
+    </div>
+    <div style="margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 50px;">
+        <div style="border-top: 1px solid #000; padding-top: 10px; text-align: center;">
+            <small>Class Teacher Signature</small>
+        </div>
+        <div style="border-top: 1px solid #000; padding-top: 10px; text-align: center;">
+            <small>School Head Signature</small>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print { .no-print { display: none; } .main-content { margin: 0; padding: 0; } .sidebar { display: none; } }
+    .report-paper { background: white; padding: 50px; border-radius: 0; box-shadow: none; border: 1px solid #e2e8f0; }
+</style>
+{% endblock %}

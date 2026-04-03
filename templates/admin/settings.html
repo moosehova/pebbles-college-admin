@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title"><i class="fas fa-cog"></i> School Configuration</h2>
+    <p class="page-subtitle">Control branding, academic year settings, and bulk onboarding tools from one place.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <div class="owlio-card" style="margin-bottom: 0;">
+        <h4 style="margin-top: 0;"><i class="fas fa-paint-brush"></i> School Branding</h4>
+        <form method="POST" enctype="multipart/form-data" style="margin-top: 15px; display: flex; flex-direction: column; gap: 14px;">
+            <div>
+                <label class="owlio-label">School Name</label>
+                <input type="text" name="school_name" value="{{ settings.school_name }}" class="owlio-input" required>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                    <label class="owlio-label">Currency Symbol</label>
+                    <input type="text" name="currency_symbol" value="{{ settings.currency_symbol }}" class="owlio-input" maxlength="10">
+                </div>
+                <div>
+                    <label class="owlio-label">Academic Year</label>
+                    <input type="text" name="academic_year" value="{{ settings.academic_year }}" class="owlio-input" placeholder="2026">
+                </div>
+            </div>
+
+            <div>
+                <label class="owlio-label">Upload Logo</label>
+                <input type="file" name="logo" class="owlio-input" accept=".png,.jpg,.jpeg,.webp,.gif">
+                <small style="display: block; margin-top: 6px; color: #64748b;">Accepted formats: PNG, JPG, JPEG, WEBP, GIF.</small>
+            </div>
+
+            {% if settings.school_logo %}
+            <div style="padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+                <small style="display: block; color: #64748b; margin-bottom: 8px;">Current logo preview</small>
+                <img src="{{ url_for('static', filename='uploads/' ~ settings.school_logo) }}" alt="Current school logo" style="max-height: 80px; width: auto;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <small style="display: none; color: #b45309;">Current logo file could not be loaded.</small>
+            </div>
+            {% endif %}
+
+            <button type="submit" class="owlio-btn" style="width: 100%; border: none;">
+                <i class="fas fa-save"></i> Save Branding
+            </button>
+        </form>
+    </div>
+
+    <div class="owlio-card" style="margin-bottom: 0;">
+        <h4 style="margin-top: 0;"><i class="fas fa-file-import"></i> Bulk Data Import</h4>
+        <p style="font-size: 0.86rem; color: #64748b; line-height: 1.6;">Upload a CSV or Excel file to create multiple students in one click. Duplicate names in the same environment are skipped automatically.</p>
+
+        <form action="{{ url_for('import_students') }}" method="POST" enctype="multipart/form-data" style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
+            <div>
+                <label class="owlio-label">Student File</label>
+                <input type="file" name="csv_file" class="owlio-input" accept=".csv,.xlsx,.xls" required>
+            </div>
+            <button type="submit" class="owlio-btn" style="background: #1e3a8a; color: white; width: 100%; border: none;">
+                <i class="fas fa-upload"></i> Start Import
+            </button>
+        </form>
+
+        <div style="margin-top: 18px; padding: 14px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+            <small style="color: #334155; line-height: 1.7;">
+                <strong>Expected columns (any of these combos):</strong><br>
+                first_name, last_name, fee, environment<br>
+                or name, fee, environment
+            </small>
+        </div>
+    </div>
+</div>
+
+<div class="owlio-card" style="margin-top: 24px; border-left: 6px solid #1e3a8a; background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);">
+    <h4 style="margin-top: 0; color: #1e3a8a;"><i class="fas fa-file-pdf"></i> Monthly Financial Summary PDF</h4>
+    <p style="margin: 8px 0 14px; color: #334155; font-size: 0.9rem;">
+        Generate a branded executive report for board meetings, bank submissions, and monthly audits.
+        Includes revenue vs payroll, inventory health, executive summary, and forward-looking exam dates.
+    </p>
+    <a href="{{ url_for('download_monthly_report') }}" class="owlio-btn" style="background: #1e3a8a; color: white; display: inline-flex; align-items: center; gap: 10px; border: none;">
+        <i class="fas fa-download"></i> Generate Monthly Report PDF
+    </a>
+</div>
+
+<details style="margin-top: 16px;">
+    <summary style="cursor: pointer; color: #64748b; font-size: 0.82rem; font-weight: 700;">Demo Controls (Admin)</summary>
+    <div class="owlio-card" style="margin-top: 10px; border-left: 6px solid #b91c1c; background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);">
+        <h4 style="margin-top: 0; color: #991b1b;"><i class="fas fa-rotate-left"></i> Reset Demo Data</h4>
+        <p style="margin: 8px 0 14px; color: #7f1d1d; font-size: 0.88rem;">
+            Clears demo records and re-seeds students, finance, academics, inventory, payroll, and calendar for a fresh proposal walkthrough.
+        </p>
+        <form action="{{ url_for('reset_demo_data') }}" method="POST" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="text" name="confirmation" class="owlio-input" placeholder="Type RESET DEMO" required style="max-width: 220px;">
+            <button type="submit" class="owlio-btn" style="background: #b91c1c; color: #fff; border: none;">
+                <i class="fas fa-triangle-exclamation"></i> Reset Demo Data
+            </button>
+        </form>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px;">
+            <a href="{{ url_for('seed_demo_route', profile='realistic') }}" style="display: inline-flex; color: #1e3a8a; font-size: 0.82rem; font-weight: 700; text-decoration: none;">
+                <i class="fas fa-wand-magic-sparkles" style="margin-right: 6px;"></i> Quick Seed (Realistic)
+            </a>
+            <a href="{{ url_for('seed_demo_route', profile='profitable') }}" style="display: inline-flex; color: #065f46; font-size: 0.82rem; font-weight: 700; text-decoration: none;">
+                <i class="fas fa-chart-line" style="margin-right: 6px;"></i> Quick Seed (Profitable)
+            </a>
+            <a href="{{ url_for('seed_demo_full_route', profile='realistic') }}" style="display: inline-flex; color: #991b1b; font-size: 0.82rem; font-weight: 700; text-decoration: none;">
+                <i class="fas fa-bolt" style="margin-right: 6px;"></i> Full Year Refresh (Realistic)
+            </a>
+            <a href="{{ url_for('seed_demo_full_route', profile='profitable') }}" style="display: inline-flex; color: #166534; font-size: 0.82rem; font-weight: 700; text-decoration: none;">
+                <i class="fas fa-bolt" style="margin-right: 6px;"></i> Full Year Refresh (Profitable)
+            </a>
+        </div>
+    </div>
+</details>
+
+<style>
+    @media (max-width: 980px) {
+        .main-content > div[style*='grid-template-columns: 1fr 1fr'] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+{% endblock %}

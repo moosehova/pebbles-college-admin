@@ -1,0 +1,360 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    @keyframes riskPulse {
+        0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45); }
+        70% { box-shadow: 0 0 0 14px rgba(220, 38, 38, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    }
+
+    .risk-alert-card {
+        border: 2px solid #dc2626;
+        border-left: 8px solid #dc2626;
+        background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%);
+        animation: riskPulse 1.8s infinite;
+    }
+
+    .risk-tag {
+        display: inline-block;
+        background: #facc15;
+        color: #1e3a8a;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 999px;
+    }
+
+    .risk-status {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        margin-left: 8px;
+    }
+
+    .risk-status-reminder {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .risk-status-call {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .risk-status-meeting {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .risk-status-none {
+        background: #e2e8f0;
+        color: #334155;
+    }
+
+    .risk-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1100;
+        padding: 20px;
+    }
+
+    .risk-modal-card {
+        width: 100%;
+        max-width: 520px;
+        background: #ffffff;
+        border-radius: 14px;
+        border-top: 6px solid #b91c1c;
+        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
+        padding: 22px;
+    }
+</style>
+
+<div class="page-header">
+    <h2 class="page-title">Pebbles Command Center</h2>
+    <p class="page-subtitle">Real-time overview of Pebbles College International.</p>
+</div>
+
+<div class="report-actions" style="margin-top: 8px; margin-bottom: 20px;">
+    <a href="{{ url_for('download_monthly_report') }}" class="owlio-btn" style="background: #1e3a8a; color: white; display: inline-flex; align-items: center; gap: 10px; border: none;">
+        <i class="fas fa-file-pdf"></i>
+        Generate Board Report ({{ school_config.academic_year }})
+    </a>
+</div>
+
+<!-- === SMART ALERT: Exam Countdown & Fee Intelligence === -->
+{% if stats.days_to_exam and stats.days_to_exam <= 14 %}
+<div class="owlio-card" style="background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%); color: white; border: none; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">
+    <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 1.8rem; color: rgba(255,255,255,0.95);"></i>
+        <div>
+            <h4 style="margin: 0 0 5px; font-size: 0.95rem; font-weight: 700;">{{ stats.exam_title }} Countdown</h4>
+            <p style="margin: 0; font-size: 0.9rem; opacity: 0.95;">
+                <strong>{{ stats.days_to_exam }} day{{ '' if stats.days_to_exam == 1 else 's' }}</strong> until exam starts. 
+                <strong>{{ stats.students_with_outstanding }}</strong> student{{ '' if stats.students_with_outstanding == 1 else 's' }} still have outstanding fees.
+            </p>
+        </div>
+    </div>
+    <a href="{{ url_for('finance_intelligence') }}" class="owlio-btn" style="background: white; color: #b45309; border: none; padding: 10px 18px; font-weight: 700; font-size: 0.85rem; white-space: nowrap; margin-left: 15px;">
+        <i class="fas fa-wallet"></i> Review Collection
+    </a>
+</div>
+{% endif %}
+
+<div class="owlio-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 20px;">
+    <div class="owlio-card" style="padding: 18px; border-left: 6px solid {% if stats.payroll_level == 'critical' %}#dc2626{% elif stats.payroll_level == 'watch' %}#f59e0b{% elif stats.payroll_level == 'healthy' %}#10b981{% else %}#94a3b8{% endif %}; background: {% if stats.payroll_level == 'critical' %}linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%){% elif stats.payroll_level == 'watch' %}linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%){% elif stats.payroll_level == 'healthy' %}linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%){% else %}linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%){% endif %};">
+        <div style="display: flex; justify-content: space-between; gap: 12px; align-items: center;">
+            <h3 style="margin: 0; font-size: 0.95rem; color: #0f172a;">Payroll Cashflow Signal</h3>
+            <span style="font-size: 0.75rem; font-weight: 800; color: #334155; text-transform: uppercase;">{{ stats.payroll_fee_ratio if stats.payroll_fee_ratio is not none else 'N/A' }}{% if stats.payroll_fee_ratio is not none %}%{% endif %}</span>
+        </div>
+        <p style="margin: 8px 0 12px; color: #334155; font-size: 0.86rem; line-height: 1.45;">{{ stats.payroll_insight }}</p>
+        <a href="{{ url_for('staff_hub') }}" style="font-size: 0.8rem; font-weight: 800; color: #1e3a8a; text-decoration: none;">Open Staff Payroll <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="owlio-card" style="padding: 18px; border-left: 6px solid {% if stats.inventory_risk_percent >= 12 %}#dc2626{% elif stats.inventory_risk_percent > 0 %}#f59e0b{% else %}#10b981{% endif %}; background: {% if stats.inventory_risk_percent >= 12 %}linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%){% elif stats.inventory_risk_percent > 0 %}linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%){% else %}linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%){% endif %};">
+        <div style="display: flex; justify-content: space-between; gap: 12px; align-items: center;">
+            <h3 style="margin: 0; font-size: 0.95rem; color: #0f172a;">Inventory Health Signal</h3>
+            <span style="font-size: 0.75rem; font-weight: 800; color: #334155; text-transform: uppercase;">Risk {{ stats.inventory_risk_percent }}%</span>
+        </div>
+        <p style="margin: 8px 0 10px; color: #334155; font-size: 0.86rem; line-height: 1.45;">Damaged units: {{ stats.damaged_units }}, Lost units: {{ stats.lost_units }}, at-risk value K{{ '%.2f'|format(stats.inventory_risk_value or 0) }}.</p>
+        <a href="{{ url_for('inventory_hub') }}" style="font-size: 0.8rem; font-weight: 800; color: #1e3a8a; text-decoration: none;">Open Inventory Health <i class="fas fa-arrow-right"></i></a>
+    </div>
+</div>
+
+{% if attendance_risk_count > 0 %}
+<div class="owlio-card risk-alert-card" style="padding: 24px; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+        <div>
+            <span class="risk-tag">Early Warning</span>
+            <h3 style="margin: 10px 0 5px; color: #991b1b; font-size: 1.15rem;">
+                Attendance risk detected for {{ attendance_risk_count }} student{{ '' if attendance_risk_count == 1 else 's' }}
+            </h3>
+            <p style="margin: 0; color: #7f1d1d; font-size: 0.9rem;">
+                Students absent for 3 consecutive records are often at risk of a performance drop. Notify parents now.
+            </p>
+            <div style="margin-top: 10px; color: #334155; font-size: 0.85rem;">
+                {% for risk in attendance_risks[:5] %}
+                    <div style="display: inline-flex; align-items: center; margin-right: 10px; margin-top: 6px; background: rgba(255,255,255,0.75); border: 1px solid #fecaca; border-radius: 10px; padding: 6px 10px; gap: 8px;">
+                        <span>{{ risk.name }}</span>
+                        {% if risk.intervention_action == 'Reminder Sent' %}
+                            <span class="risk-status risk-status-reminder">Reminder Sent</span>
+                        {% elif risk.intervention_action == 'Meeting Scheduled' %}
+                            <span class="risk-status risk-status-meeting">
+                                <i class="far fa-calendar-alt" style="margin-right: 4px;"></i>Meeting Scheduled
+                            </span>
+                        {% elif risk.intervention_action in ['Call Logged', 'Resolved'] %}
+                            <span class="risk-status risk-status-call">{{ risk.intervention_action }}</span>
+                        {% else %}
+                            <span class="risk-status risk-status-none">No Action</span>
+                        {% endif %}
+                        {% if risk.meeting_pending %}
+                            <span title="Meeting on {{ risk.meeting_date }}" style="color: #047857; font-size: 0.9rem;"><i class="fas fa-calendar-check"></i></span>
+                        {% endif %}
+                        <button type="button"
+                                onclick="openCallModal('{{ risk.id }}', '{{ risk.name|replace("'", "&#39;") }}')"
+                                style="border: none; background: #1e3a8a; color: white; border-radius: 8px; padding: 4px 8px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">
+                            Log Call
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <form action="{{ url_for('remind_attendance_risks') }}" method="POST" style="margin: 0;">
+            <button type="submit" class="owlio-btn" style="background: #b91c1c; color: #ffffff; border: none; padding: 12px 18px; font-size: 0.8rem; font-weight: 800;">
+                <i class="fas fa-phone-alt"></i> Remind All At-Risk Parents
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="owlio-card" style="padding: 24px; margin-bottom: 24px; border-left: 6px solid #facc15; background: linear-gradient(135deg, #fffdf2 0%, #fef3c7 100%);">
+    <div style="display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center;">
+        <div>
+            <h3 style="margin: 0 0 6px; color: #1e3a8a; font-size: 1.05rem;">Academic Health</h3>
+            <p style="margin: 0; color: #334155; font-size: 0.9rem;">{{ stats.academic_insight }}</p>
+        </div>
+        <div style="text-align: right; min-width: 150px;">
+            <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800; letter-spacing: 0.8px;">Students Passing</div>
+            <div style="font-size: 2rem; color: #166534; font-weight: 900; line-height: 1.1;">{{ stats.academic_pass_rate }}%</div>
+            <a href="{{ url_for('edit_grades') }}" style="font-size: 0.78rem; color: #1e3a8a; font-weight: 700; text-decoration: none;">Open Smart Reports <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+</div>
+
+<div class="owlio-card" style="padding: 24px; margin-bottom: 24px; border-left: 6px solid #0f766e; background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);">
+    <div style="display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; margin-bottom: 18px;">
+        <div>
+            <h3 style="margin: 0 0 6px; color: #115e59; font-size: 1.05rem;">Subject Leaderboard</h3>
+            <p style="margin: 0; color: #334155; font-size: 0.9rem;">Top and bottom departments based on the latest 30-day grade window.</p>
+        </div>
+        <a href="{{ url_for('subject_stats') }}" style="font-size: 0.82rem; color: #115e59; font-weight: 800; text-decoration: none;">Open Department Analytics <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+        <div style="background: rgba(255,255,255,0.9); border: 1px solid #ccfbf1; border-radius: 16px; padding: 18px;">
+            <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Top Performer</div>
+            <div style="margin-top: 8px; font-size: 1.2rem; font-weight: 900; color: #166534;">{{ stats.top_subject or 'No Data' }}</div>
+            <div style="margin-top: 6px; color: #475569;">{{ stats.top_subject_avg if stats.top_subject_avg is not none else 0 }}% average</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.9); border: 1px solid #ccfbf1; border-radius: 16px; padding: 18px;">
+            <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">Needs Support</div>
+            <div style="margin-top: 8px; font-size: 1.2rem; font-weight: 900; color: #991b1b;">{{ stats.bottom_subject or 'No Data' }}</div>
+            <div style="margin-top: 6px; color: #475569;">{{ stats.bottom_subject_avg if stats.bottom_subject_avg is not none else 0 }}% average</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.9); border: 1px solid #ccfbf1; border-radius: 16px; padding: 18px;">
+            <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 800;">AI Focus</div>
+            <div style="margin-top: 8px; color: #0f172a; font-weight: 800; line-height: 1.5;">
+                {% if stats.subject_leaderboard_preview and stats.subject_leaderboard_preview[-1].avg < 60 %}
+                    {{ stats.subject_leaderboard_preview[-1].subject }} is below the 60% stability line. Schedule a teacher workshop.
+                {% elif stats.subject_leaderboard_preview %}
+                    {{ stats.subject_leaderboard_preview[0].subject }} is setting the pace. Replicate that teaching rhythm.
+                {% else %}
+                    Enter grade data to unlock subject intelligence.
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="riskCallModal" class="risk-modal-backdrop" onclick="closeCallModal(event)">
+    <div class="risk-modal-card" onclick="event.stopPropagation()">
+        <h3 style="margin-top: 0; margin-bottom: 6px; color: #991b1b;">Log Attendance Call</h3>
+        <p id="riskStudentLabel" style="margin: 0 0 16px; color: #475569; font-size: 0.9rem;"></p>
+        <form action="{{ url_for('log_attendance_call') }}" method="POST">
+            <input type="hidden" name="student_id" id="riskStudentId">
+            <input type="hidden" name="action_type" id="riskActionType" value="call">
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 6px; color: #334155; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Call Notes</label>
+                <textarea name="note" required rows="4" placeholder="Called parent, student has a fever, expected return Monday..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; font-family: inherit;"></textarea>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 6px; color: #334155; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Expected Return Date</label>
+                <input type="date" name="expected_return_date" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 6px; color: #334155; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Meeting Date (optional unless scheduling)</label>
+                <input type="date" name="meeting_date" id="riskMeetingDate" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px;">
+            </div>
+            <label style="display: flex; align-items: center; gap: 8px; color: #334155; margin-bottom: 16px; font-size: 0.85rem;">
+                <input type="checkbox" name="resolved">
+                Mark as resolved (remove from active risk)
+            </label>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="forceCloseCallModal()" style="border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 10px; padding: 9px 12px; font-weight: 700; cursor: pointer;">
+                    Cancel
+                </button>
+                <button type="submit" style="border: none; background: #b91c1c; color: #fff; border-radius: 10px; padding: 9px 14px; font-weight: 800; cursor: pointer;">
+                    Save Intervention
+                </button>
+                <button type="submit" onclick="setMeetingAction()" style="border: none; background: #047857; color: #fff; border-radius: 10px; padding: 9px 14px; font-weight: 800; cursor: pointer;">
+                    <i class="far fa-calendar-plus"></i> Convert Call to Meeting
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
+    <div class="owlio-card" style="padding: 20px; border-bottom: 4px solid var(--primary-blue); margin-bottom: 0;">
+        <div style="color: #64748b; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Total Students</div>
+        <div style="font-size: 1.8rem; font-weight: 800; margin-top: 5px;">{{ stats.students }}</div>
+    </div>
+    
+    <div class="owlio-card" style="padding: 20px; border-bottom: 4px solid var(--accent-gold); margin-bottom: 0;">
+        <div style="color: #64748b; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Environments</div>
+        <div style="font-size: 1.8rem; font-weight: 800; margin-top: 5px;">{{ stats.classes }}</div>
+    </div>
+
+    <div class="owlio-card" style="padding: 20px; border-bottom: 4px solid #10b981; margin-bottom: 0;">
+        <div style="color: #64748b; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Income (MTD)</div>
+        <div style="font-size: 1.8rem; font-weight: 800; margin-top: 5px; color: #166534;">K {{ stats.income }}</div>
+    </div>
+
+    <div class="owlio-card" style="padding: 20px; border-bottom: 4px solid #6366f1; margin-bottom: 0;">
+        <div style="color: #64748b; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Staff Count</div>
+        <div style="font-size: 1.8rem; font-weight: 800; margin-top: 5px;">{{ stats.staff_count }}</div>
+    </div>
+</div>
+
+<div class="owlio-card" style="margin-bottom: 30px; border-left: 5px solid var(--accent-gold); padding: 30px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 40px;">
+        <div style="min-width: 200px;">
+            <h4 style="margin: 0; color: #64748b; font-size: 0.8rem; text-transform: uppercase;">Monthly Net Profit</h4>
+            <div style="font-size: 2.2rem; font-weight: 800; color: #166534; margin-top: 5px;">K {{ stats.balance }}</div>
+        </div>
+        <div style="flex-grow: 1;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.85rem; font-weight: 700; color: var(--primary-blue);">
+                <span>EXPENSE VS INCOME RATIO</span>
+                <span>{{ stats.expense_percent }}%</span>
+            </div>
+            <div style="width: 100%; height: 12px; background: #f1f5f9; border-radius: 50px; overflow: hidden; border: 1px solid #e2e8f0;">
+                <div style="width: {{ stats.expense_percent }}%; height: 100%; background: var(--primary-blue); transition: width 0.8s ease-in-out;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="owlio-card" style="padding: 0; overflow: hidden;">
+    <div class="owlio-header" style="padding: 25px 30px; border-bottom: 1px solid #f1f5f9;">
+        <h3 class="owlio-title">Recent Montessori Students</h3>
+    </div>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #f8fafc;">
+            <tr>
+                <th style="padding: 15px 30px; text-align: left; font-size: 0.7rem; color: #64748b; text-transform: uppercase;">Student</th>
+                <th style="padding: 15px 30px; text-align: left; font-size: 0.7rem; color: #64748b; text-transform: uppercase;">Environment</th>
+                <th style="padding: 15px 30px; text-align: right; font-size: 0.7rem; color: #64748b; text-transform: uppercase;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 18px 30px;">
+                    <div style="font-weight: 700; color: var(--primary-blue);">{{ student.first_name }} {{ student.last_name }}</div>
+                </td>
+                <td style="padding: 18px 30px; color: #475569;">
+                    <span class="badge" style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">
+                        {{ student.classroom.name if student.classroom else 'General' }}
+                    </span>
+                </td>
+                <td style="padding: 18px 30px; text-align: right;">
+                    <a href="{{ url_for('student_profile', student_id=student.id) }}" class="owlio-btn" style="padding: 8px 16px; font-size: 0.7rem; background: var(--accent-gold); color: var(--primary-blue); border: none;">
+                        <i class="fas fa-user-graduate"></i> STUDENT 360
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+<script>
+    function openCallModal(studentId, studentName) {
+        document.getElementById('riskStudentId').value = studentId;
+        document.getElementById('riskActionType').value = 'call';
+        document.getElementById('riskStudentLabel').textContent = 'Student: ' + studentName;
+        document.getElementById('riskCallModal').style.display = 'flex';
+    }
+
+    function closeCallModal(event) {
+        if (event.target.id === 'riskCallModal') {
+            forceCloseCallModal();
+        }
+    }
+
+    function forceCloseCallModal() {
+        document.getElementById('riskCallModal').style.display = 'none';
+    }
+
+    function setMeetingAction() {
+        document.getElementById('riskActionType').value = 'meeting';
+    }
+</script>
