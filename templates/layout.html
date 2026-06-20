@@ -70,7 +70,7 @@
     </div>
     {% endif %}
 
-        <div class="main-content">
+        <div class="main-content {% if not current_user.is_authenticated %}no-sidebar{% endif %}">
             {% if current_user.is_authenticated %}
             <header class="top-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: white; border-bottom: 1px solid #edf2f7; position: sticky; top: 0; z-index: 100;">
                 <div class="search-area" style="display: flex; align-items: center; gap: 15px;">

@@ -146,6 +146,13 @@ body {
     padding: 40px;
 }
 
+/* Login / unauthenticated pages — no sidebar offset */
+.main-content.no-sidebar {
+    margin-left: 0;
+    width: 100%;
+    padding: 0;
+}
+
 /* Premium Card Design */
 .owlio-card {
     background: white;
