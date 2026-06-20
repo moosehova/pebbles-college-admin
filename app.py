@@ -448,6 +448,20 @@ def month_window(reference_date):
 
 # ------------------- ROUTES -------------------
 
+# PWA: Serve service worker from root scope (required for full-app coverage)
+@app.route('/sw.js')
+def service_worker():
+    response = app.send_static_file('sw.js')
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['Content-Type'] = 'application/javascript'
+    return response
+
+
+@app.route('/manifest.json')
+def manifest():
+    return app.send_static_file('manifest.json')
+
+
 # Updated route to match form action in attendance.html
 @app.route('/parent-portal')
 @login_required

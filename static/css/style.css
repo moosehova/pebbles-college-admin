@@ -225,3 +225,232 @@ body {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 10px;
 }
+
+/* ============================================
+   HAMBURGER BUTTON (mobile only)
+   ============================================ */
+.hamburger-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    background: #002d62;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.hamburger-btn:hover {
+    background: #003580;
+}
+
+/* ============================================
+   MOBILE OVERLAY BACKDROP
+   ============================================ */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+/* --- Tablet & below (≤ 1024px) --- */
+@media (max-width: 1024px) {
+    .main-content {
+        padding: 24px;
+    }
+}
+
+/* --- Mobile (≤ 768px) --- */
+@media (max-width: 768px) {
+    /* Show hamburger */
+    .hamburger-btn {
+        display: flex;
+    }
+
+    /* Sidebar slides in from left as overlay */
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        width: 280px;
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    /* Main content takes full width */
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 70px 16px 20px; /* top padding for hamburger btn */
+    }
+
+    .main-content.no-sidebar {
+        padding: 0;
+    }
+
+    /* Top bar mobile adjustments */
+    .top-bar {
+        padding: 0 16px 0 64px !important; /* leave space for hamburger */
+        height: 64px !important;
+    }
+
+    /* Page headers */
+    .page-header {
+        padding: 16px 0 10px;
+    }
+
+    .page-title {
+        font-size: 1.4rem !important;
+    }
+
+    .page-subtitle {
+        font-size: 0.85rem !important;
+    }
+
+    /* Cards */
+    .owlio-card {
+        padding: 18px !important;
+        border-radius: 12px !important;
+        margin-bottom: 16px !important;
+    }
+
+    /* Stats grid — 2 columns on mobile */
+    .stats-grid, [style*="grid-template-columns: repeat(4"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+
+    /* 3-col grids collapse to 1 or 2 */
+    [style*="grid-template-columns: repeat(3"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+
+    /* Login page grid stacks */
+    .login-grid {
+        grid-template-columns: 1fr !important;
+        padding: 20px 16px;
+        min-height: auto !important;
+        gap: 16px !important;
+    }
+
+    /* Login page header */
+    div[style*="padding-top: 50px"] {
+        padding-top: 30px !important;
+    }
+
+    div[style*="padding-top: 50px"] h1 {
+        font-size: 1.7rem !important;
+    }
+
+    /* Tables — horizontal scroll */
+    .table-responsive, table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Buttons full width on mobile forms */
+    .owlio-btn[style*="width: 100%"] {
+        font-size: 0.95rem;
+        padding: 13px 20px;
+    }
+
+    /* Form group spacing */
+    .owlio-form-group {
+        margin-bottom: 14px;
+    }
+
+    /* Hide search bar text on very small screens */
+    #globalSearch {
+        width: 120px !important;
+    }
+
+    /* User info in topbar — hide text labels, keep avatar */
+    .top-bar .user-controls [style*="text-align: right"] {
+        display: none !important;
+    }
+
+    /* Reduce font size for stat numbers */
+    h2[style*="font-size: 2rem"],
+    h2[style*="font-size: 2.2rem"],
+    h2[style*="font-size: 1.9rem"] {
+        font-size: 1.4rem !important;
+    }
+
+    /* Nav header labels */
+    .nav-header {
+        padding: 14px 20px 4px !important;
+    }
+}
+
+/* --- Small phones (≤ 480px) --- */
+@media (max-width: 480px) {
+    .main-content {
+        padding: 66px 12px 16px;
+    }
+
+    /* 2-col grids become 1-col */
+    [style*="grid-template-columns: repeat(4"],
+    [style*="grid-template-columns: repeat(3"],
+    [style*="grid-template-columns: repeat(2"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    .owlio-card {
+        padding: 14px !important;
+    }
+
+    .top-bar {
+        padding: 0 12px 0 62px !important;
+    }
+
+    #globalSearch {
+        width: 90px !important;
+    }
+
+    /* Login page */
+    .login-grid {
+        padding: 16px 12px;
+    }
+}
+
+/* ============================================
+   PWA SAFE AREA (notched phones — iPhone X+)
+   ============================================ */
+@supports (padding: max(0px)) {
+    .main-content {
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+
+    .sidebar {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .hamburger-btn {
+        top: max(14px, env(safe-area-inset-top));
+    }
+}
+
