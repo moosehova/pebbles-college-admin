@@ -401,9 +401,23 @@ def ensure_database_schema():
 
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
-    # Seed calendar events
+    # Seed calendar events and demo data
     seed_calendar_events()
     seed_demo_data()
+
+    # Ensure at least one admin account exists (runs on gunicorn too)
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        admin = User(
+            username='admin',
+            password=generate_password_hash('pebbles123'),
+            role='admin'
+        )
+        db.session.add(admin)
+        db.session.commit()
+    elif admin.role != 'admin':
+        admin.role = 'admin'
+        db.session.commit()
 
     schema_initialized = True
 
@@ -2362,12 +2376,4 @@ def get_rsvp_status(event_id):
 if __name__ == '__main__':
     with app.app_context():
         ensure_database_schema()
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            admin = User(username='admin', password=generate_password_hash('pebbles123'), role='admin')
-            db.session.add(admin)
-            db.session.commit()
-        elif admin.role != 'admin':
-            admin.role = 'admin'
-            db.session.commit()
     app.run(debug=True)
