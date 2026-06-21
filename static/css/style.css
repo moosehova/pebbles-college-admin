@@ -270,13 +270,91 @@ body {
 }
 
 /* ============================================
+   LAYOUT UTILITY CLASSES
+   ============================================ */
+
+/* Page header */
+.page-header {
+    margin-bottom: 24px;
+}
+.page-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--primary-blue);
+    margin: 0 0 6px;
+}
+.page-subtitle {
+    font-size: 0.95rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Stats 4-column grid */
+.stats-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+/* Stat card internals */
+.stat-card {
+    padding: 20px;
+    margin-bottom: 0;
+}
+.stat-label {
+    color: #64748b;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-top: 5px;
+}
+
+/* Auto-fit grid for signal cards */
+.owlio-grid {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+/* Profit card */
+.profit-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+.profit-amount {
+    min-width: 160px;
+}
+.profit-bar {
+    flex-grow: 1;
+    min-width: 200px;
+}
+
+/* Table horizontal scroll wrapper */
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+
+/* ============================================
    RESPONSIVE BREAKPOINTS
    ============================================ */
 
-/* --- Tablet & below (≤ 1024px) --- */
+/* --- Tablet (≤ 1024px) --- */
 @media (max-width: 1024px) {
     .main-content {
-        padding: 24px;
+        padding: 30px;
+    }
+    .stats-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -287,153 +365,156 @@ body {
         display: flex;
     }
 
-    /* Sidebar slides in from left as overlay */
+    /* Sidebar becomes slide-in overlay */
     .sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s ease;
         z-index: 1000;
         width: 280px;
     }
-
     .sidebar.open {
         transform: translateX(0);
     }
 
-    /* Main content takes full width */
+    /* Main content — full width, clear sidebar */
     .main-content {
         margin-left: 0 !important;
         width: 100% !important;
-        padding: 70px 16px 20px; /* top padding for hamburger btn */
+        padding: 72px 16px 24px;
+        box-sizing: border-box;
     }
-
     .main-content.no-sidebar {
         padding: 0;
     }
 
-    /* Top bar mobile adjustments */
+    /* Top bar */
     .top-bar {
-        padding: 0 16px 0 64px !important; /* leave space for hamburger */
-        height: 64px !important;
+        padding: 0 14px 0 64px !important;
+        height: 62px !important;
     }
 
-    /* Page headers */
+    /* Page header */
     .page-header {
-        padding: 16px 0 10px;
+        padding: 4px 0 12px;
+        margin-bottom: 16px;
     }
-
     .page-title {
-        font-size: 1.4rem !important;
+        font-size: 1.3rem;
     }
-
     .page-subtitle {
-        font-size: 0.85rem !important;
+        font-size: 0.82rem;
     }
 
     /* Cards */
     .owlio-card {
-        padding: 18px !important;
+        padding: 16px !important;
         border-radius: 12px !important;
-        margin-bottom: 16px !important;
+        margin-bottom: 14px !important;
     }
 
-    /* Stats grid — 2 columns on mobile */
-    .stats-grid, [style*="grid-template-columns: repeat(4"] {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 12px !important;
+    /* Stats grid: 4 → 2 columns */
+    .stats-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    .stat-card {
+        padding: 14px !important;
+    }
+    .stat-number {
+        font-size: 1.4rem;
     }
 
-    /* 3-col grids collapse to 1 or 2 */
-    [style*="grid-template-columns: repeat(3"] {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 12px !important;
+    /* Profit card stacks vertically */
+    .profit-inner {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+    .profit-bar {
+        width: 100%;
+        min-width: unset;
+    }
+    .profit-amount {
+        min-width: unset;
     }
 
-    /* Login page grid stacks */
+    /* Login page */
     .login-grid {
         grid-template-columns: 1fr !important;
-        padding: 20px 16px;
+        padding: 20px 16px !important;
         min-height: auto !important;
         gap: 16px !important;
     }
 
-    /* Login page header */
-    div[style*="padding-top: 50px"] {
-        padding-top: 30px !important;
-    }
-
-    div[style*="padding-top: 50px"] h1 {
-        font-size: 1.7rem !important;
-    }
-
     /* Tables — horizontal scroll */
-    .table-responsive, table {
-        display: block;
+    .table-scroll {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-
-    /* Buttons full width on mobile forms */
-    .owlio-btn[style*="width: 100%"] {
-        font-size: 0.95rem;
-        padding: 13px 20px;
+    table {
+        min-width: 480px;
     }
 
-    /* Form group spacing */
+    /* Form elements */
     .owlio-form-group {
-        margin-bottom: 14px;
+        margin-bottom: 12px;
     }
 
-    /* Hide search bar text on very small screens */
+    /* Search bar shrink */
     #globalSearch {
-        width: 120px !important;
+        width: 110px !important;
     }
 
-    /* User info in topbar — hide text labels, keep avatar */
+    /* Hide username text in topbar, keep avatar */
     .top-bar .user-controls [style*="text-align: right"] {
         display: none !important;
     }
 
-    /* Reduce font size for stat numbers */
-    h2[style*="font-size: 2rem"],
-    h2[style*="font-size: 2.2rem"],
-    h2[style*="font-size: 1.9rem"] {
-        font-size: 1.4rem !important;
-    }
-
     /* Nav header labels */
     .nav-header {
-        padding: 14px 20px 4px !important;
+        padding: 12px 20px 4px !important;
+        font-size: 0.6rem !important;
+    }
+
+    /* Report/action buttons */
+    .report-actions .owlio-btn {
+        width: 100%;
+        justify-content: center;
+        box-sizing: border-box;
     }
 }
 
 /* --- Small phones (≤ 480px) --- */
 @media (max-width: 480px) {
     .main-content {
-        padding: 66px 12px 16px;
+        padding: 68px 12px 20px;
     }
 
-    /* 2-col grids become 1-col */
-    [style*="grid-template-columns: repeat(4"],
-    [style*="grid-template-columns: repeat(3"],
-    [style*="grid-template-columns: repeat(2"] {
-        grid-template-columns: 1fr !important;
+    /* Stats: 2 → 1 column */
+    .stats-grid-4 {
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 
     .owlio-card {
-        padding: 14px !important;
+        padding: 12px !important;
+        margin-bottom: 10px !important;
     }
 
     .top-bar {
-        padding: 0 12px 0 62px !important;
+        padding: 0 10px 0 60px !important;
     }
 
     #globalSearch {
-        width: 90px !important;
+        width: 80px !important;
     }
 
-    /* Login page */
     .login-grid {
-        padding: 16px 12px;
+        padding: 14px 12px !important;
+    }
+
+    .stat-number {
+        font-size: 1.2rem;
     }
 }
 
@@ -442,15 +523,16 @@ body {
    ============================================ */
 @supports (padding: max(0px)) {
     .main-content {
-        padding-bottom: max(20px, env(safe-area-inset-bottom));
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
     }
-
     .sidebar {
         padding-bottom: env(safe-area-inset-bottom);
     }
-
     .hamburger-btn {
         top: max(14px, env(safe-area-inset-top));
+        left: max(14px, env(safe-area-inset-left));
     }
 }
 
+
+/* end of styles */
