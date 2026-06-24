@@ -587,6 +587,8 @@ def attendance():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     # Gather statistics for the dashboard
     all_students = Student.query.all()
     students = Student.query.count()
@@ -896,12 +898,16 @@ def save_attendance():
 @app.route('/academics/manage', methods=['GET'])
 @login_required
 def manage_academics():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     envs = Environment.query.all()
     return render_template('academics/manage.html', environments=envs)
 
 @app.route('/academics/create_env', methods=['POST'])
 @login_required
 def create_env():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     new_env = Environment(name=request.form['name'], level=request.form['level'])
     db.session.add(new_env)
     db.session.commit()
@@ -913,6 +919,8 @@ def create_env():
 @app.route('/academics/observations', methods=['GET'])
 @login_required
 def observations():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     students = Student.query.all()
     all_obs = Observation.query.order_by(Observation.date.desc()).all()
     return render_template('academics/observations.html', students=students, observations=all_obs)
@@ -920,6 +928,8 @@ def observations():
 @app.route('/academics/save_observation', methods=['POST'])
 @login_required
 def save_observation():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     new_obs = Observation(
         student_id=request.form.get('student_id'),
         title=request.form.get('title'),
@@ -1008,6 +1018,8 @@ def suggest_comment(student_id):
 @app.route('/people/add_student', methods=['GET', 'POST'])
 @login_required
 def enroll_student():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     if request.method == 'POST':
         # Convert string date from form to Python date object
         dob_obj = datetime.strptime(request.form['dob'], '%Y-%m-%d').date()
@@ -1030,6 +1042,8 @@ def enroll_student():
 @app.route('/academics/promotion')
 @login_required
 def promotion_hub():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     envs = Environment.query.all()
     return render_template('academics/promotion.html', environments=envs)
 
@@ -1060,6 +1074,9 @@ def create_parent():
 @app.route('/people/report/<int:student_id>')
 @login_required
 def view_report(student_id):
+    if hasattr(current_user, 'role') and current_user.role == 'parent' and current_user.student_id != student_id:
+        flash('Unauthorized report card access.', 'danger')
+        return redirect(url_for('parent_portal'))
     student = Student.query.get_or_404(student_id)
     now = datetime.utcnow()
     # 1. Calculate Attendance %
@@ -1608,6 +1625,8 @@ def subject_stats():
 @app.route('/finance/fees', methods=['GET', 'POST'])
 @login_required
 def fee_collection():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     if request.method == 'POST':
         new_payment = Income(
             student_id=request.form.get('student_id'),
@@ -1629,6 +1648,8 @@ def fee_collection():
 @app.route('/finance/expenses', methods=['GET', 'POST'])
 @login_required
 def expenses():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     staff_list = Staff.query.all()
     if request.method == 'POST':
         category = request.form.get('category')
@@ -1658,6 +1679,8 @@ def expenses():
 @app.route('/finance/staff')
 @login_required
 def staff_hub():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     all_staff = Staff.query.all()
     now = datetime.utcnow()
     month_name = now.strftime('%B')
@@ -1709,6 +1732,8 @@ def staff_hub():
 @app.route('/finance/staff/add', methods=['POST'])
 @login_required
 def add_staff():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     new_member = Staff(
         name=request.form.get('name'),
         role=request.form.get('role'),
@@ -1723,6 +1748,8 @@ def add_staff():
 @app.route('/finance/staff/payrun', methods=['POST'])
 @login_required
 def generate_payrun():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     deduction_percent_raw = request.form.get('deduction_percent', '0').strip()
     try:
         deduction_percent = max(0.0, min(float(deduction_percent_raw), 40.0))
@@ -2151,6 +2178,8 @@ def download_monthly_report():
 @app.route('/finance/inventory')
 @login_required
 def inventory_hub():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     items = Inventory.query.all()
 
     total_units = sum(item.quantity or 0 for item in items)
@@ -2209,6 +2238,8 @@ def inventory_hub():
 @app.route('/finance/inventory/add', methods=['POST'])
 @login_required
 def add_inventory():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     quantity = request.form.get('quantity') or 1
     unit_value = request.form.get('unit_value') or 0
     new_item = Inventory(
@@ -2227,6 +2258,8 @@ def add_inventory():
 @app.route('/finance/inventory/<int:item_id>/condition', methods=['POST'])
 @login_required
 def update_inventory_condition(item_id):
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     item = Inventory.query.get_or_404(item_id)
     condition = (request.form.get('condition') or 'Good').strip()
     if condition not in ['New', 'Good', 'Damaged', 'Lost']:
@@ -2250,6 +2283,8 @@ def logout():
 @app.route('/staff-chat', endpoint='staff_chat_page')
 @login_required
 def staff_chat_page():
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     from models import User
     staff_members = User.query.filter(User.role != 'parent', User.id != current_user.id).all()
     return render_template('admin/staff_chat.html', staff=staff_members)
@@ -2257,6 +2292,8 @@ def staff_chat_page():
 @app.route('/chat/with/<int:user_id>')
 @login_required
 def private_chat(user_id):
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return redirect(url_for('parent_portal'))
     from models import User, Message
     recipient = User.query.get_or_404(user_id)
     messages = Message.query.filter(

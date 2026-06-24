@@ -4,9 +4,15 @@
     <h2 class="page-title">Monthly Progress Report</h2>
     <p class="page-subtitle">Generating report for {{ student.first_name }} - {{ month_name }} {{ year }}</p>
     <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+        {% if current_user.role == 'parent' %}
+        <a href="{{ url_for('parent_portal') }}" class="owlio-btn" style="text-decoration: none; background: #0f172a; border: none;">
+            <i class="fas fa-home"></i> Back to Parent Portal
+        </a>
+        {% else %}
         <a href="{{ url_for('student_profile', student_id=student.id) }}" class="owlio-btn" style="text-decoration: none; background: #0f172a; border: none;">
             <i class="fas fa-user-graduate"></i> Back to Student 360
         </a>
+        {% endif %}
         <button onclick="window.print()" class="owlio-btn" style="border: none;">
             <i class="fas fa-print"></i> Print Report
         </button>
