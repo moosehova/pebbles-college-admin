@@ -4,6 +4,12 @@
     <div>
         <h2 class="page-title">HR & Workforce Department</h2>
         <p class="page-subtitle">Manage staff roster, track timecards, and review leave applications.</p>
+        <div class="mt-2 mb-6">
+            <a href="{{ url_for('kiosk_view') }}" target="_blank" class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 px-3 py-1.5 rounded-lg border border-blue-200 transition-all">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Launch Tablet Kiosk Mode ↗
+            </a>
+        </div>
     </div>
     <div style="display: flex; gap: 10px;">
         <span class="owlio-btn" style="background: #e0e7ff; color: #3730a3; border: none; font-weight: 800;">
@@ -17,23 +23,23 @@
     </div>
 </div>
 
-<div class="bg-white border border-slate-100 rounded-xl p-2 shadow-sm max-w-2xl mb-8">
-    <nav class="flex flex-col sm:flex-row gap-2" aria-label="Tabs">
-        <button onclick="switchTab('roster')" id="btn-roster" class="tab-btn active flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-lg bg-blue-600 text-white shadow-sm transition-all duration-200">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-            Workforce Roster
+<div class="bg-white border border-slate-100 rounded-xl p-1.5 shadow-sm inline-flex mb-8">
+    <nav class="flex gap-1" aria-label="Tabs">
+        <button onclick="switchTab('roster')" id="btn-roster" class="tab-btn active flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-blue-600 text-white shadow-sm transition-all duration-200">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span>Workforce Roster</span>
         </button>
         
-        <button onclick="switchTab('attendance')" id="btn-attendance" class="tab-btn flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-200">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            Time Cards & Attendance
+        <button onclick="switchTab('attendance')" id="btn-attendance" class="tab-btn flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-200">
+            <svg class="w-4 h-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>Time Cards & Attendance</span>
         </button>
         
-        <button onclick="switchTab('leave')" id="btn-leave" class="tab-btn flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-200">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            Leave Management
-            {% if pending_leaves|length > 0 %}
-            <span class="inline-flex items-center justify-center px-2 py-0.5 ml-1 text-xs font-bold leading-none text-red-100 bg-red-500 rounded-full">{{ pending_leaves|length }}</span>
+        <button onclick="switchTab('leave')" id="btn-leave" class="tab-btn flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-200">
+            <svg class="w-4 h-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>Leave Management</span>
+            {% if pending_leaves %}
+            <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-500 rounded-full">{{ pending_leaves|length }}</span>
             {% endif %}
         </button>
     </nav>
@@ -235,12 +241,16 @@ function switchTab(tabId) {
     
     // Reset all tab button styles seamlessly
     document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.className = "tab-btn flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-200";
+        btn.className = "tab-btn flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-200";
+        const svg = btn.querySelector('svg');
+        if(svg) svg.className = "w-4 h-4 shrink-0 text-slate-400";
     });
     
     // Apply highlight styles to the active selection
     const activeBtn = document.getElementById('btn-' + tabId);
-    activeBtn.className = "tab-btn active flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold rounded-lg bg-blue-600 text-white shadow-sm transition-all duration-200";
+    activeBtn.className = "tab-btn active flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-blue-600 text-white shadow-sm transition-all duration-200";
+    const activeSvg = activeBtn.querySelector('svg');
+    if(activeSvg) activeSvg.className = "w-4 h-4 shrink-0 text-white";
 }
 </script>
 {% endblock %}
