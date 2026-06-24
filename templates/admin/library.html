@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <div>
+        <h2 class="page-title">Library Catalog</h2>
+        <p class="page-subtitle">Manage library assets, track inventory, and issue books to students and staff.</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <span class="owlio-btn" style="background: #fee2e2; color: #991b1b; border: none; font-weight: 800;">
+            <i class="fas fa-exclamation-circle"></i> {{ overdue_count }} Overdue Loans
+        </span>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px; margin-bottom: 24px; align-items: start;">
+    <!-- Add Book Form -->
+    <div class="owlio-card">
+        <div class="owlio-header">
+            <h3 class="owlio-title">Register New Book</h3>
+        </div>
+        <form action="{{ url_for('add_book') }}" method="POST">
+            <div style="margin-bottom: 15px;">
+                <label class="owlio-label">Title</label>
+                <input type="text" name="title" class="owlio-input" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label class="owlio-label">Author</label>
+                <input type="text" name="author" class="owlio-input" required>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label class="owlio-label">ISBN (Optional)</label>
+                    <input type="text" name="isbn" class="owlio-input">
+                </div>
+                <div>
+                    <label class="owlio-label">Category</label>
+                    <input type="text" name="category" class="owlio-input" value="General">
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label class="owlio-label">Total Copies</label>
+                    <input type="number" name="total_copies" class="owlio-input" value="1" min="1" required>
+                </div>
+                <div>
+                    <label class="owlio-label">Location / Rack</label>
+                    <input type="text" name="location_rack" class="owlio-input" placeholder="e.g. Rack B-4">
+                </div>
+            </div>
+            <button type="submit" class="owlio-btn" style="width: 100%; border: none;">Add to Catalog</button>
+        </form>
+    </div>
+
+    <!-- Active Loans Table -->
+    <div class="owlio-card" style="padding: 0; overflow: hidden;">
+        <div class="owlio-header" style="padding: 20px 24px;">
+            <h3 class="owlio-title">Active Circulation</h3>
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Book</th>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Borrower</th>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Due Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in active_loans %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 14px 24px; font-weight: 800; color: #0f172a;">{{ loan.book.title }}</td>
+                    <td style="padding: 14px 24px; color: #475569;">
+                        {% if loan.student_id %}
+                            Student (ID: {{ loan.student_id }})
+                        {% elif loan.user_id %}
+                            Staff (ID: {{ loan.user_id }})
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </td>
+                    <td style="padding: 14px 24px; color: {{ '#991b1b' if loan.due_date < current_time else '#166534' }}; font-weight: 800;">
+                        {{ loan.due_date.strftime('%b %d, %Y') }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" style="padding: 14px 24px; color: #64748b;">No active book loans.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="owlio-card" style="padding: 0; overflow: hidden;">
+    <div class="owlio-header" style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="owlio-title">Full Catalog</h3>
+    </div>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #f8fafc;">
+            <tr>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Title & Author</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Category</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Location</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Availability</th>
+                <th style="padding: 14px 24px; text-align: right; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 18px 24px; font-weight: 800; color: #0f172a;">
+                    {{ book.title }} <br>
+                    <small style="color: #64748b; font-weight: normal;">{{ book.author }}</small>
+                </td>
+                <td style="padding: 18px 24px; color: #475569;">{{ book.category }}</td>
+                <td style="padding: 18px 24px; color: #475569;">{{ book.location_rack or 'Unassigned' }}</td>
+                <td style="padding: 18px 24px;">
+                    <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 800; background: {{ '#dcfce7' if book.available_copies > 0 else '#fee2e2' }}; color: {{ '#166534' if book.available_copies > 0 else '#991b1b' }};">
+                        {{ book.available_copies }} / {{ book.total_copies }} Available
+                    </span>
+                </td>
+                <td style="padding: 18px 24px; text-align: right;">
+                    {% if book.available_copies > 0 %}
+                    <form action="{{ url_for('issue_book') }}" method="POST" style="display: inline;">
+                        <input type="hidden" name="book_id" value="{{ book.id }}">
+                        <input type="number" name="student_id" placeholder="Student ID" style="width: 80px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.75rem;" required>
+                        <button type="submit" class="owlio-btn" style="padding: 6px 12px; font-size: 0.75rem; border: none; margin-left: 5px;">Issue</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="padding: 18px 24px; color: #64748b; text-align: center;">No books in catalog.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

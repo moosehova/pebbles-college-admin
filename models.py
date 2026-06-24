@@ -191,3 +191,99 @@ class SchoolEvent(db.Model):
     end_date = db.Column(db.DateTime)
     category = db.Column(db.String(50))  # 'Holiday', 'Exam', 'Sport', 'Academic'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ====================================================================
+# 1. LIBRARY BOOK RECORDS & MANAGEMENT
+# ====================================================================
+class Book(db.Model):
+    __tablename__ = 'library_books'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    author = db.Column(db.String(255), nullable=False)
+    isbn = db.Column(db.String(50), unique=True, nullable=True)
+    category = db.Column(db.String(100), default='General')
+    total_copies = db.Column(db.Integer, default=1)
+    available_copies = db.Column(db.Integer, default=1)
+    location_rack = db.Column(db.String(50), nullable=True) # e.g., "Rack B-4"
+    
+    loans = db.relationship('BookLoan', backref='book', lazy=True)
+
+class BookLoan(db.Model):
+    __tablename__ = 'book_loans'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    book_id = db.Column(db.Integer, db.ForeignKey('library_books.id'), nullable=False)
+    # Can be loaned by a student or a staff member/user
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) 
+    
+    checkout_date = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    due_date = db.Column(db.Date, nullable=False)
+    return_date = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(20), default='Issued') # Issued, Returned, Overdue
+
+# ====================================================================
+# 2. VEHICLE FLEET REGISTER (SERVICE & INSURANCE EXPIRY)
+# ====================================================================
+class Vehicle(db.Model):
+    __tablename__ = 'vehicles'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    make = db.Column(db.String(100), nullable=False)
+    model = db.Column(db.String(100), nullable=False)
+    plate_number = db.Column(db.String(50), unique=True, nullable=False)
+    capacity = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20), default='Active') # Active, Maintenance, Out of Service
+    
+    # Expiry and service compliance logs
+    last_service_date = db.Column(db.Date, nullable=True)
+    next_service_due = db.Column(db.Date, nullable=True)
+    insurance_policy_number = db.Column(db.String(100), nullable=True)
+    insurance_expiry = db.Column(db.Date, nullable=True)
+    road_fitness_expiry = db.Column(db.Date, nullable=True)
+    
+    logs = db.relationship('VehicleMaintenanceLog', backref='vehicle', lazy=True)
+
+class VehicleMaintenanceLog(db.Model):
+    __tablename__ = 'vehicle_maintenance_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
+    log_date = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    service_type = db.Column(db.String(100), nullable=False) # e.g., "Insurance Renewal", "Major Engine Service"
+    cost = db.Column(db.Float, default=0.0)
+    notes = db.Column(db.Text, nullable=True)
+
+# ====================================================================
+# 3. EQUIPMENT REGISTER (HARDWARE & ASSETS)
+# ====================================================================
+class Equipment(db.Model):
+    __tablename__ = 'equipment_register'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    asset_tag = db.Column(db.String(50), unique=True, nullable=False) # Unique barcode/serial Identifier
+    name = db.Column(db.String(150), nullable=False)
+    category = db.Column(db.String(100), nullable=False) # IT Hardware, Lab Equipment, Sports Gear
+    assigned_location = db.Column(db.String(100), nullable=True) # e.g., "Computer Lab 1"
+    condition = db.Column(db.String(50), default='Good') # New, Good, Defective, Missing
+    purchase_date = db.Column(db.Date, nullable=True)
+    purchase_value = db.Column(db.Float, default=0.0)
+
+# ====================================================================
+# 4. BUILDING MAINTENANCE REGISTER
+# ====================================================================
+class BuildingMaintenance(db.Model):
+    __tablename__ = 'building_maintenance'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    facility_area = db.Column(db.String(150), nullable=False) # e.g., "Block A - Roof", "ELC Classroom Plumbing"
+    issue_description = db.Column(db.Text, nullable=False)
+    reported_date = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    scheduled_date = db.Column(db.Date, nullable=True)
+    completion_date = db.Column(db.Date, nullable=True)
+    
+    priority = db.Column(db.String(20), default='Medium') # Low, Medium, High, Emergency
+    status = db.Column(db.String(20), default='Pending') # Pending, In Progress, Completed, Deferred
+    estimated_cost = db.Column(db.Float, default=0.0)
+    actual_cost = db.Column(db.Float, default=0.0)

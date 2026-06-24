@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <div>
+        <h2 class="page-title">Vehicle Fleet Logistics</h2>
+        <p class="page-subtitle">Manage school vehicles, track servicing, and monitor insurance compliance.</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        {% if service_alerts|length > 0 %}
+        <span class="owlio-btn" style="background: #fee2e2; color: #991b1b; border: none; font-weight: 800;">
+            <i class="fas fa-wrench"></i> {{ service_alerts|length }} Service Alerts
+        </span>
+        {% endif %}
+        {% if insurance_alerts|length > 0 %}
+        <span class="owlio-btn" style="background: #fef3c7; color: #92400e; border: none; font-weight: 800;">
+            <i class="fas fa-shield-alt"></i> {{ insurance_alerts|length }} Insurance Expiries
+        </span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="owlio-card" style="margin-bottom: 24px;">
+    <div class="owlio-header">
+        <h3 class="owlio-title">Register New Vehicle</h3>
+    </div>
+    <form action="{{ url_for('add_vehicle') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+        <div>
+            <label class="owlio-label">Make</label>
+            <input type="text" name="make" class="owlio-input" placeholder="e.g. Toyota" required>
+        </div>
+        <div>
+            <label class="owlio-label">Model</label>
+            <input type="text" name="model" class="owlio-input" placeholder="e.g. Hiace" required>
+        </div>
+        <div>
+            <label class="owlio-label">Plate Number</label>
+            <input type="text" name="plate_number" class="owlio-input" required>
+        </div>
+        
+        <div>
+            <label class="owlio-label">Capacity (Passengers)</label>
+            <input type="number" name="capacity" class="owlio-input">
+        </div>
+        <div>
+            <label class="owlio-label">Last Service Date</label>
+            <input type="date" name="last_service_date" class="owlio-input">
+        </div>
+        <div>
+            <label class="owlio-label">Next Service Due</label>
+            <input type="date" name="next_service_due" class="owlio-input">
+        </div>
+
+        <div>
+            <label class="owlio-label">Insurance Policy #</label>
+            <input type="text" name="insurance_policy_number" class="owlio-input">
+        </div>
+        <div>
+            <label class="owlio-label">Insurance Expiry</label>
+            <input type="date" name="insurance_expiry" class="owlio-input">
+        </div>
+        <div>
+            <label class="owlio-label">Road Fitness Expiry</label>
+            <input type="date" name="road_fitness_expiry" class="owlio-input">
+        </div>
+        
+        <div style="grid-column: 1 / -1;">
+            <button type="submit" class="owlio-btn" style="border: none;">Register Vehicle</button>
+        </div>
+    </form>
+</div>
+
+<div class="owlio-card" style="padding: 0; overflow: hidden;">
+    <div class="owlio-header" style="padding: 20px 24px;">
+        <h3 class="owlio-title">Fleet Register</h3>
+    </div>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #f8fafc;">
+            <tr>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Vehicle</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Plate</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Capacity</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Next Service</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Insurance Exp</th>
+                <th style="padding: 14px 24px; text-align: center; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vehicle in vehicles %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 18px 24px; font-weight: 800; color: #0f172a;">
+                    {{ vehicle.make }} {{ vehicle.model }}
+                </td>
+                <td style="padding: 18px 24px; color: #475569; font-family: monospace;">{{ vehicle.plate_number }}</td>
+                <td style="padding: 18px 24px; color: #475569;">{{ vehicle.capacity or 'N/A' }}</td>
+                
+                <td style="padding: 18px 24px; color: {% if vehicle in service_alerts %}#991b1b{% else %}#475569{% endif %}; font-weight: {% if vehicle in service_alerts %}800{% else %}normal{% endif %};">
+                    {{ vehicle.next_service_due.strftime('%b %d, %Y') if vehicle.next_service_due else 'Not Scheduled' }}
+                </td>
+                
+                <td style="padding: 18px 24px; color: {% if vehicle in insurance_alerts %}#92400e{% else %}#475569{% endif %}; font-weight: {% if vehicle in insurance_alerts %}800{% else %}normal{% endif %};">
+                    {{ vehicle.insurance_expiry.strftime('%b %d, %Y') if vehicle.insurance_expiry else 'Unknown' }}
+                </td>
+                
+                <td style="padding: 18px 24px; text-align: center;">
+                    <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 800; background: {{ '#dcfce7' if vehicle.status == 'Active' else '#f1f5f9' }}; color: {{ '#166534' if vehicle.status == 'Active' else '#475569' }};">
+                        {{ vehicle.status }}
+                    </span>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="padding: 18px 24px; color: #64748b; text-align: center;">No vehicles registered in fleet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

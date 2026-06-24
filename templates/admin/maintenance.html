@@ -1,0 +1,124 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <div>
+        <h2 class="page-title">Facilities & Equipment</h2>
+        <p class="page-subtitle">Log building maintenance issues and track hardware inventory across the campus.</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px; margin-bottom: 24px; align-items: start;">
+    <!-- Maintenance Ticket Form -->
+    <div class="owlio-card">
+        <div class="owlio-header">
+            <h3 class="owlio-title">Log Maintenance Ticket</h3>
+        </div>
+        <form action="{{ url_for('log_maintenance_ticket') }}" method="POST">
+            <div style="margin-bottom: 15px;">
+                <label class="owlio-label">Facility Area</label>
+                <input type="text" name="facility_area" class="owlio-input" placeholder="e.g. Block A - Roof" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label class="owlio-label">Issue Description</label>
+                <textarea name="issue_description" class="owlio-input" rows="3" required></textarea>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label class="owlio-label">Priority</label>
+                    <select name="priority" class="owlio-select">
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                        <option value="Emergency">Emergency</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="owlio-label">Est. Cost (K)</label>
+                    <input type="number" step="0.01" name="estimated_cost" class="owlio-input" value="0.00">
+                </div>
+            </div>
+            <button type="submit" class="owlio-btn" style="width: 100%; border: none; background: #0f172a;">Dispatch Ticket</button>
+        </form>
+    </div>
+
+    <!-- Active Tickets Table -->
+    <div class="owlio-card" style="padding: 0; overflow: hidden;">
+        <div class="owlio-header" style="padding: 20px 24px;">
+            <h3 class="owlio-title">Maintenance Queue</h3>
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Area</th>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Issue</th>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Priority</th>
+                    <th style="padding: 14px 24px; text-align: center; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 14px 24px; font-weight: 800; color: #0f172a;">{{ job.facility_area }}</td>
+                    <td style="padding: 14px 24px; color: #475569;">{{ job.issue_description }}</td>
+                    <td style="padding: 14px 24px;">
+                        <span style="font-weight: 800; color: 
+                            {% if job.priority == 'Emergency' %}#991b1b
+                            {% elif job.priority == 'High' %}#c2410c
+                            {% elif job.priority == 'Medium' %}#0f172a
+                            {% else %}#475569{% endif %};">
+                            {{ job.priority }}
+                        </span>
+                    </td>
+                    <td style="padding: 14px 24px; text-align: center;">
+                        <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 800; background: {{ '#dcfce7' if job.status == 'Completed' else '#f1f5f9' }}; color: {{ '#166534' if job.status == 'Completed' else '#475569' }};">
+                            {{ job.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="padding: 14px 24px; color: #64748b; text-align: center;">No active maintenance tickets.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="owlio-card" style="padding: 0; overflow: hidden;">
+    <div class="owlio-header" style="padding: 20px 24px;">
+        <h3 class="owlio-title">Equipment & Hardware Register</h3>
+    </div>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #f8fafc;">
+            <tr>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Asset Tag</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Name & Category</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Location</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Condition</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for eq in equipment %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 18px 24px; font-family: monospace; font-weight: 800; color: #1e3a8a;">{{ eq.asset_tag }}</td>
+                <td style="padding: 18px 24px; font-weight: 800; color: #0f172a;">
+                    {{ eq.name }} <br>
+                    <small style="color: #64748b; font-weight: normal;">{{ eq.category }}</small>
+                </td>
+                <td style="padding: 18px 24px; color: #475569;">{{ eq.assigned_location or 'Unassigned' }}</td>
+                <td style="padding: 18px 24px;">
+                    <span style="font-weight: 800; color: {{ '#166534' if eq.condition in ['New', 'Good'] else '#991b1b' }};">
+                        {{ eq.condition }}
+                    </span>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="padding: 18px 24px; color: #64748b; text-align: center;">No equipment hardware registered.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -17,7 +17,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance
+from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance
 
 # ------------------- APP INITIALIZATION -------------------
 app = Flask(__name__)
@@ -2474,6 +2474,146 @@ def get_rsvp_status(event_id):
             ).count()
         })
 
+
+# ====================================================================
+# LIBRARY SUITE PIPELINES
+# ====================================================================
+@app.route('/library')
+@login_required
+def library_hub():
+    if not restrict_access(['admin', 'staff']):
+        return redirect(url_for('parent_portal'))
+        
+    books = Book.query.all()
+    active_loans = BookLoan.query.filter_by(status='Issued').all()
+    
+    # Calculate operational metrics
+    overdue_count = BookLoan.query.filter(BookLoan.status == 'Issued', BookLoan.due_date < datetime.utcnow().date()).count()
+    
+    return render_template('admin/library.html', books=books, active_loans=active_loans, overdue_count=overdue_count)
+
+@app.route('/library/book/add', methods=['POST'])
+@login_required
+def add_book():
+    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    
+    copies = int(request.form.get('total_copies', 1))
+    new_book = Book(
+        title=request.form.get('title'),
+        author=request.form.get('author'),
+        isbn=request.form.get('isbn') or None,
+        category=request.form.get('category', 'General'),
+        total_copies=copies,
+        available_copies=copies,
+        location_rack=request.form.get('location_rack')
+    )
+    db.session.add(new_book)
+    db.session.commit()
+    flash("New book asset indexed to catalog.", "success")
+    return redirect(url_for('library_hub'))
+
+@app.route('/library/loan/issue', methods=['POST'])
+@login_required
+def issue_book():
+    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    
+    book_id = request.form.get('book_id')
+    book = Book.query.get_or_404(book_id)
+    
+    if book.available_copies <= 0:
+        flash("No copies currently available for circulation.", "danger")
+        return redirect(url_for('library_hub'))
+        
+    days_allocated = int(request.form.get('loan_duration', 14))
+    due = datetime.utcnow().date() + timedelta(days=days_allocated)
+    
+    loan = BookLoan(
+        book_id=book_id,
+        student_id=request.form.get('student_id') or None,
+        user_id=request.form.get('user_id') or None,
+        due_date=due,
+        status='Issued'
+    )
+    
+    book.available_copies -= 1
+    db.session.add(loan)
+    db.session.commit()
+    flash("Book successfully checked out.", "success")
+    return redirect(url_for('library_hub'))
+
+# ====================================================================
+# FLEET LOGISTICS PIPELINES
+# ====================================================================
+@app.route('/fleet')
+@login_required
+def fleet_hub():
+    if not restrict_access(['admin', 'staff', 'accountant']):
+        return redirect(url_for('parent_portal'))
+        
+    today = datetime.utcnow().date()
+    vehicles = Vehicle.query.all()
+    
+    # Proactive Alert Systems
+    insurance_alerts = [v for v in vehicles if v.insurance_expiry and (v.insurance_expiry - today).days <= 30]
+    service_alerts = [v for v in vehicles if v.next_service_due and (v.next_service_due - today).days <= 7]
+    
+    return render_template('admin/fleet.html', vehicles=vehicles, insurance_alerts=insurance_alerts, service_alerts=service_alerts)
+
+@app.route('/fleet/vehicle/add', methods=['POST'])
+@login_required
+def add_vehicle():
+    if not restrict_access(['admin', 'accountant']): return jsonify({"error": "Unauthorized"}), 403
+    
+    def parse_date(form_key):
+        val = request.form.get(form_key)
+        return datetime.strptime(val, '%Y-%m-%d').date() if val else None
+
+    new_vehicle = Vehicle(
+        make=request.form.get('make'),
+        model=request.form.get('model'),
+        plate_number=request.form.get('plate_number', '').upper(),
+        capacity=request.form.get('capacity'),
+        last_service_date=parse_date('last_service_date'),
+        next_service_due=parse_date('next_service_due'),
+        insurance_policy_number=request.form.get('insurance_policy_number'),
+        insurance_expiry=parse_date('insurance_expiry'),
+        road_fitness_expiry=parse_date('road_fitness_expiry')
+    )
+    db.session.add(new_vehicle)
+    db.session.commit()
+    flash("Vehicle registered into logistics registry.", "success")
+    return redirect(url_for('fleet_hub'))
+
+# ====================================================================
+# BUILDING MAINTENANCE & FIXED ASSET REGISTER PIPELINES
+# ====================================================================
+@app.route('/maintenance')
+@login_required
+def maintenance_hub():
+    if not restrict_access(['admin', 'staff', 'accountant']):
+        return redirect(url_for('parent_portal'))
+        
+    jobs = BuildingMaintenance.query.order_by(BuildingMaintenance.priority.desc()).all()
+    equipment = Equipment.query.all()
+    
+    return render_template('admin/maintenance.html', jobs=jobs, equipment=equipment)
+
+@app.route('/maintenance/job/ticket', methods=['POST'])
+@login_required
+def log_maintenance_ticket():
+    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    
+    ticket = BuildingMaintenance(
+        facility_area=request.form.get('facility_area'),
+        issue_description=request.form.get('issue_description'),
+        priority=request.form.get('priority', 'Medium'),
+        estimated_cost=float(request.form.get('estimated_cost', 0.0)),
+        status='Pending'
+    )
+    db.session.add(ticket)
+    db.session.commit()
+    flash("Maintenance service ticket dispatched.", "success")
+    return redirect(url_for('maintenance_hub'))
 
 # ------------------- RUN APP -------------------
 if __name__ == '__main__':
