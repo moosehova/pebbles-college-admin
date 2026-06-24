@@ -408,9 +408,10 @@ def ensure_database_schema():
 
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
-    # Seed calendar events and demo data
-    seed_calendar_events()
-    seed_demo_data()
+    # Seed calendar events and demo data only on SQLite or if explicitly requested via environment variable
+    if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI'] or os.environ.get('SEED_DEMO', '').lower() == 'true':
+        seed_calendar_events()
+        seed_demo_data()
 
     # Ensure at least one admin account exists (runs on gunicorn too)
     admin = User.query.filter_by(username='admin').first()
