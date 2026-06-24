@@ -1,6 +1,9 @@
 # ------------------- IMPORTS -------------------
 import os
 from io import BytesIO
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
@@ -18,8 +21,12 @@ from models import db, User, Student, Environment, Attendance, Observation, Inco
 
 # ------------------- APP INITIALIZATION -------------------
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key_here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///school.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key_here')
+
+db_url = os.environ.get('DATABASE_URL', 'sqlite:///school.db')
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 db.init_app(app)
