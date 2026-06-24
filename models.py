@@ -17,7 +17,7 @@ class Announcement(db.Model):
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
-    password = db.Column(db.String(60), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     # NEW FIELDS for Parent Portal
     role = db.Column(db.String(20), default='parent') # 'admin' or 'parent'
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=True)
