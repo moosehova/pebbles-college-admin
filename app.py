@@ -243,14 +243,21 @@ def seed_demo_data(profile='realistic'):
 
     if Staff.query.count() == 0:
         staff_seed = [
-            ('Sarah Phiri', 'Lead Guide', 9400),
-            ('Martin Zulu', 'Assistant', 5600),
-            ('Joyce Tembo', 'Admin', 7000),
-            ('Kelvin Banda', 'Security', 4600),
-            ('Agnes Chisanga', 'Lead Guide', 9100),
+            ('Sarah Phiri', 'Lead Guide', 9400, 'sarah'),
+            ('Martin Zulu', 'Assistant', 5600, 'martin'),
+            ('Joyce Tembo', 'Admin', 7000, 'joyce'),
+            ('Kelvin Banda', 'Security', 4600, 'kelvin'),
+            ('Agnes Chisanga', 'Lead Guide', 9100, 'agnes'),
         ]
-        for name, role, salary in staff_seed:
-            db.session.add(Staff(name=name, role=role, salary_amount=salary))
+        for name, role, salary, username in staff_seed:
+            new_staff = Staff(name=name, role=role, salary_amount=salary)
+            db.session.add(new_staff)
+            db.session.flush()
+            # Generate credentials inside the unified login infrastructure automatically
+            hashed_pw = generate_password_hash('pebbles123')
+            user_role = 'admin' if role in ['Admin', 'Lead Guide'] else 'staff'
+            user_cred = User(username=username, password=hashed_pw, role=user_role, staff_id=new_staff.id)
+            db.session.add(user_cred)
         db.session.flush()
 
     if PayrollRecord.query.count() == 0:
@@ -368,6 +375,12 @@ def check_and_migrate_schema():
             db.session.execute(text('ALTER TABLE attendance_intervention ADD COLUMN meeting_date DATE'))
             db.session.commit()
 
+    if inspector.has_table('user'):
+        user_columns = [column['name'] for column in inspector.get_columns('user')]
+        if 'staff_id' not in user_columns:
+            db.session.execute(text('ALTER TABLE user ADD COLUMN staff_id INTEGER'))
+            db.session.commit()
+
     if inspector.has_table('inventory'):
         inventory_columns = [column['name'] for column in inspector.get_columns('inventory')]
         if 'condition' not in inventory_columns:
@@ -467,6 +480,13 @@ def month_window(reference_date):
     else:
         next_month = datetime(reference_date.year, reference_date.month + 1, 1)
     return month_start, next_month
+
+# ------------------- CONTROL/AUTH DIRECTIVES -------------------
+def restrict_access(allowed_roles):
+    """Enforce role checking wrapper cleanly across operations."""
+    if not current_user.is_authenticated:
+        return False
+    return hasattr(current_user, 'role') and current_user.role in allowed_roles
 
 # ------------------- ROUTES -------------------
 
@@ -595,7 +615,7 @@ def attendance():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     # Gather statistics for the dashboard
     all_students = Student.query.all()
@@ -906,7 +926,7 @@ def save_attendance():
 @app.route('/academics/manage', methods=['GET'])
 @login_required
 def manage_academics():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     envs = Environment.query.all()
     return render_template('academics/manage.html', environments=envs)
@@ -914,7 +934,7 @@ def manage_academics():
 @app.route('/academics/create_env', methods=['POST'])
 @login_required
 def create_env():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     new_env = Environment(name=request.form['name'], level=request.form['level'])
     db.session.add(new_env)
@@ -927,7 +947,7 @@ def create_env():
 @app.route('/academics/observations', methods=['GET'])
 @login_required
 def observations():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     students = Student.query.all()
     all_obs = Observation.query.order_by(Observation.date.desc()).all()
@@ -936,7 +956,7 @@ def observations():
 @app.route('/academics/save_observation', methods=['POST'])
 @login_required
 def save_observation():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     new_obs = Observation(
         student_id=request.form.get('student_id'),
@@ -953,7 +973,7 @@ def save_observation():
 @app.route('/academics/grades', methods=['GET'])
 @login_required
 def edit_grades():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
 
     students = Student.query.order_by(Student.first_name.asc()).all()
@@ -965,7 +985,7 @@ def edit_grades():
 @app.route('/academics/save-grade', methods=['POST'])
 @login_required
 def save_grade():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
 
     student_id = request.form.get('student_id')
@@ -1026,8 +1046,7 @@ def suggest_comment(student_id):
 @app.route('/people/add_student', methods=['GET', 'POST'])
 @login_required
 def enroll_student():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
-        return redirect(url_for('parent_portal'))
+    if not restrict_access(['admin', 'staff']): return redirect(url_for('parent_portal'))
     if request.method == 'POST':
         # Convert string date from form to Python date object
         dob_obj = datetime.strptime(request.form['dob'], '%Y-%m-%d').date()
@@ -1036,13 +1055,14 @@ def enroll_student():
             last_name=request.form['last_name'],
             dob=dob_obj,
             class_id=request.form['class_id'],
-            pickup_auth=request.form['pickup_auth']
+            pickup_auth=request.form['pickup_auth'],
+            tuition_fee=request.form.get('tuition_fee', 5000)
         )
         db.session.add(new_student)
         db.session.commit()
+        flash('Student enrollment successful.', 'success')
         return redirect(url_for('dashboard'))
-    envs = Environment.query.all()
-    return render_template('people/add_student.html', environments=envs)
+    return render_template('people/add_student.html', environments=Environment.query.all())
 
 
 
@@ -1050,7 +1070,7 @@ def enroll_student():
 @app.route('/academics/promotion')
 @login_required
 def promotion_hub():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     envs = Environment.query.all()
     return render_template('academics/promotion.html', environments=envs)
@@ -1109,7 +1129,7 @@ def view_report(student_id):
 @app.route('/student/profile/<int:student_id>')
 @login_required
 def student_profile(student_id):
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         flash('Student 360 is available to school staff only.', 'danger')
         return redirect(url_for('parent_portal'))
 
@@ -1164,7 +1184,7 @@ def student_profile(student_id):
 @app.route('/search-student')
 @login_required
 def search_student():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
 
     query = (request.args.get('q') or '').strip()
@@ -1193,7 +1213,7 @@ def search_student():
 @app.route('/api/search-autocomplete')
 @login_required
 def search_autocomplete():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return jsonify([])
 
     query = (request.args.get('q') or '').strip()
@@ -1221,7 +1241,7 @@ def search_autocomplete():
 @app.route('/students')
 @login_required
 def view_students():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
 
     query = (request.args.get('q') or '').strip()
@@ -1493,7 +1513,7 @@ def seed_demo_route():
 @app.route('/behavior/log', methods=['POST'])
 @login_required
 def log_behavior():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
 
     student_id = request.form.get('student_id')
@@ -1633,7 +1653,7 @@ def subject_stats():
 @app.route('/finance/fees', methods=['GET', 'POST'])
 @login_required
 def fee_collection():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     if request.method == 'POST':
         new_payment = Income(
@@ -1656,7 +1676,7 @@ def fee_collection():
 @app.route('/finance/expenses', methods=['GET', 'POST'])
 @login_required
 def expenses():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     staff_list = Staff.query.all()
     if request.method == 'POST':
@@ -1685,7 +1705,7 @@ def expenses():
 @app.route('/finance/expenses/<int:expense_id>', methods=['DELETE'])
 @login_required
 def delete_expense(expense_id):
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return jsonify({"success": False, "error": "Unauthorized access."}), 403
 
     expense = Expense.query.get_or_404(expense_id)
@@ -1703,7 +1723,7 @@ def delete_expense(expense_id):
 @app.route('/finance/staff')
 @login_required
 def staff_hub():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     all_staff = Staff.query.all()
     now = datetime.utcnow()
@@ -1756,23 +1776,45 @@ def staff_hub():
 @app.route('/finance/staff/add', methods=['POST'])
 @login_required
 def add_staff():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
+
+    name = request.form.get('name')
+    role = request.form.get('role')
+    salary = request.form.get('salary')
+    username = request.form.get('username', '').strip().lower()
+    password = request.form.get('password')
+
+    if not name or not username or not password:
+        flash("All registration field inputs are required.", "danger")
+        return redirect(url_for('staff_hub'))
+
+    if User.query.filter_by(username=username).first():
+        flash("System logging login username already exists.", "danger")
+        return redirect(url_for('staff_hub'))
+
     new_member = Staff(
-        name=request.form.get('name'),
-        role=request.form.get('role'),
-        salary_amount=request.form.get('salary')
+        name=name,
+        role=role,
+        salary_amount=salary
     )
     db.session.add(new_member)
+    db.session.flush()
+
+    # Automatically generate corresponding login identity access credential dynamically linked
+    user_role = 'admin' if role in ['Admin', 'Lead Guide'] else 'staff'
+    user_cred = User(username=username, password=generate_password_hash(password), role=user_role, staff_id=new_member.id)
+    db.session.add(user_cred)
+
     db.session.commit()
-    flash(f"Staff member {new_member.name} registered!", "success")
+    flash(f"Staff member {new_member.name} registered with systemic login tracking access.", "success")
     return redirect(url_for('staff_hub'))
 
 
 @app.route('/finance/staff/payrun', methods=['POST'])
 @login_required
 def generate_payrun():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     deduction_percent_raw = request.form.get('deduction_percent', '0').strip()
     try:
@@ -2202,7 +2244,7 @@ def download_monthly_report():
 @app.route('/finance/inventory')
 @login_required
 def inventory_hub():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     items = Inventory.query.all()
 
@@ -2262,7 +2304,7 @@ def inventory_hub():
 @app.route('/finance/inventory/add', methods=['POST'])
 @login_required
 def add_inventory():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     quantity = request.form.get('quantity') or 1
     unit_value = request.form.get('unit_value') or 0
@@ -2282,7 +2324,7 @@ def add_inventory():
 @app.route('/finance/inventory/<int:item_id>/condition', methods=['POST'])
 @login_required
 def update_inventory_condition(item_id):
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     item = Inventory.query.get_or_404(item_id)
     condition = (request.form.get('condition') or 'Good').strip()
@@ -2307,7 +2349,7 @@ def logout():
 @app.route('/staff-chat', endpoint='staff_chat_page')
 @login_required
 def staff_chat_page():
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     from models import User
     staff_members = User.query.filter(User.role != 'parent', User.id != current_user.id).all()
@@ -2316,7 +2358,7 @@ def staff_chat_page():
 @app.route('/chat/with/<int:user_id>')
 @login_required
 def private_chat(user_id):
-    if hasattr(current_user, 'role') and current_user.role == 'parent':
+    if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     from models import User, Message
     recipient = User.query.get_or_404(user_id)
@@ -2389,7 +2431,7 @@ def rsvp_event(event_id):
     else:
         # If parent, link their student
         student_id = None
-        if hasattr(current_user, 'role') and current_user.role == 'parent':
+        if not restrict_access(['admin', 'staff', 'accountant']):
             student_id = current_user.student_id
         
         attendance = EventAttendance(

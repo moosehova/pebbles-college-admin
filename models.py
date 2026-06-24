@@ -21,6 +21,7 @@ class User(db.Model, UserMixin):
     # NEW FIELDS for Parent Portal
     role = db.Column(db.String(20), default='parent') # 'admin' or 'parent'
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=True)
     profile_pic = db.Column(db.String(255), default='default.png')
 
 class Environment(db.Model):
