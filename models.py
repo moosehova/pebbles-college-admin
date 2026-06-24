@@ -129,6 +129,10 @@ class Staff(db.Model):
     name = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(50)) # e.g., Teacher, Admin, Security
     salary_amount = db.Column(db.Float)
+    staff_phone = db.Column(db.String(50), nullable=True)
+    nrc_number = db.Column(db.String(50), nullable=True) # National Registration Card
+    next_of_kin = db.Column(db.String(150), nullable=True)
+    date_joined = db.Column(db.Date, default=datetime.utcnow().date)
 
 
 class PayrollRecord(db.Model):
@@ -327,3 +331,29 @@ class UniformDistribution(db.Model):
     date_issued = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
     status = db.Column(db.String(50), default='Issued') # Issued, Pending, Exchanged
     payment_status = db.Column(db.String(50), default='Paid') # Paid, Added to Fees Account
+
+# ====================================================================
+# HR & WORKFORCE DEPARTMENT EXTENSIONS
+# ====================================================================
+class StaffAttendance(db.Model):
+    __tablename__ = 'staff_attendance'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
+    date = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    clock_in = db.Column(db.DateTime, nullable=True)
+    clock_out = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(50), default='Present') # Present, Absent, Late, On Leave
+    notes = db.Column(db.String(255), nullable=True)
+
+class LeaveRequest(db.Model):
+    __tablename__ = 'leave_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
+    leave_type = db.Column(db.String(100), nullable=False) # Annual, Sick, Compassionate, Maternity
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    reason = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(50), default='Pending') # Pending, Approved, Rejected
+    approved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)

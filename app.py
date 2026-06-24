@@ -17,7 +17,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution
+from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution, StaffAttendance, LeaveRequest
 
 # ------------------- APP INITIALIZATION -------------------
 app = Flask(__name__)
@@ -388,6 +388,21 @@ def check_and_migrate_schema():
             db.session.commit()
         if 'unit_value' not in inventory_columns:
             db.session.execute(text('ALTER TABLE inventory ADD COLUMN unit_value FLOAT DEFAULT 0'))
+            db.session.commit()
+
+    if inspector.has_table('staff'):
+        staff_columns = [column['name'] for column in inspector.get_columns('staff')]
+        if 'staff_phone' not in staff_columns:
+            db.session.execute(text('ALTER TABLE staff ADD COLUMN staff_phone VARCHAR(50)'))
+            db.session.commit()
+        if 'nrc_number' not in staff_columns:
+            db.session.execute(text('ALTER TABLE staff ADD COLUMN nrc_number VARCHAR(50)'))
+            db.session.commit()
+        if 'next_of_kin' not in staff_columns:
+            db.session.execute(text('ALTER TABLE staff ADD COLUMN next_of_kin VARCHAR(150)'))
+            db.session.commit()
+        if 'date_joined' not in staff_columns:
+            db.session.execute(text('ALTER TABLE staff ADD COLUMN date_joined DATE'))
             db.session.commit()
 
 
@@ -2706,6 +2721,92 @@ def issue_uniform():
     db.session.commit()
     flash(f"Uniform order processed cleanly. Total: K{total_calculated_cost:,.2f}", "success")
     return redirect(url_for('uniform_hub'))
+
+# ====================================================================
+# HR & WORKFORCE DEPARTMENT CONTROLLERS
+# ====================================================================
+@app.route('/hr/dashboard')
+@login_required
+def hr_department():
+    if not restrict_access(['admin', 'accountant']):
+        return redirect(url_for('parent_portal'))
+        
+    today = datetime.utcnow().date()
+    staff_list = Staff.query.all()
+    pending_leaves = LeaveRequest.query.filter_by(status='Pending').all()
+    
+    # Active daily clock-in stats
+    today_attendance = StaffAttendance.query.filter_by(date=today).all()
+    present_staff_ids = [a.staff_id for a in today_attendance if a.status in ['Present', 'Late']]
+    
+    return render_template(
+        'admin/hr_dashboard.html',
+        staff=staff_list,
+        pending_leaves=pending_leaves,
+        today_attendance=today_attendance,
+        present_staff_ids=present_staff_ids,
+        today=today
+    )
+
+@app.route('/hr/attendance/clock', methods=['POST'])
+@login_required
+def staff_clock_action():
+    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    
+    # Can allow staff to clock themselves in, or admin to override
+    staff_id = request.form.get('staff_id') or current_user.staff_id
+    if not staff_id:
+        flash("No active profile linked to this user account.", "danger")
+        return redirect(request.referrer)
+        
+    today = datetime.utcnow().date()
+    now = datetime.utcnow()
+    
+    record = StaffAttendance.query.filter_by(staff_id=staff_id, date=today).first()
+    
+    if not record:
+        # Create a clean clock-in stamp
+        record = StaffAttendance(staff_id=staff_id, date=today, clock_in=now, status='Present')
+        db.session.add(record)
+        flash("Clock-in recorded successfully.", "success")
+    else:
+        # Update with clock-out stamp
+        record.clock_out = now
+        flash("Clock-out recorded successfully.", "success")
+        
+    db.session.commit()
+    return redirect(request.referrer)
+
+@app.route('/hr/leave/request', methods=['POST'])
+@login_required
+def submit_leave():
+    staff_id = current_user.staff_id or request.form.get('staff_id')
+    new_request = LeaveRequest(
+        staff_id=staff_id,
+        leave_type=request.form.get('leave_type'),
+        start_date=datetime.strptime(request.form.get('start_date'), '%Y-%m-%d').date(),
+        end_date=datetime.strptime(request.form.get('end_date'), '%Y-%m-%d').date(),
+        reason=request.form.get('reason'),
+        status='Pending'
+    )
+    db.session.add(new_request)
+    db.session.commit()
+    flash("Leave configuration submitted for review.", "success")
+    return redirect(request.referrer)
+
+@app.route('/hr/leave/review/<int:leave_id>/<string:action>', methods=['POST'])
+@login_required
+def review_leave(leave_id, action):
+    if not restrict_access(['admin']): return jsonify({"error": "Unauthorized"}), 403
+    
+    leave = LeaveRequest.query.get_or_404(leave_id)
+    if action in ['Approved', 'Rejected']:
+        leave.status = action
+        leave.approved_by = current_user.id
+        db.session.commit()
+        flash(f"Leave request marked as {action.lower()}.", "success")
+    return redirect(url_for('hr_department'))
+
 # ------------------- RUN APP -------------------
 if __name__ == '__main__':
     with app.app_context():

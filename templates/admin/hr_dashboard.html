@@ -1,0 +1,230 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <div>
+        <h2 class="page-title">HR & Workforce Department</h2>
+        <p class="page-subtitle">Manage staff roster, track timecards, and review leave applications.</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <span class="owlio-btn" style="background: #e0e7ff; color: #3730a3; border: none; font-weight: 800;">
+            <i class="fas fa-users"></i> {{ staff|length }} Active Staff
+        </span>
+        {% if pending_leaves|length > 0 %}
+        <span class="owlio-btn" style="background: #fef3c7; color: #92400e; border: none; font-weight: 800;">
+            <i class="fas fa-envelope-open-text"></i> {{ pending_leaves|length }} Pending Leaves
+        </span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="tabs-container bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+    <div class="flex border-b border-slate-200 gap-6 mb-6">
+        <button class="tab-btn active font-semibold text-sm pb-3 text-blue-600 border-b-2 border-blue-600" onclick="switchTab('roster', this)">Workforce Roster</button>
+        <button class="tab-btn font-medium text-sm pb-3 text-slate-500 hover:text-slate-800" onclick="switchTab('timecards', this)">Time Cards & Attendance</button>
+        <button class="tab-btn font-medium text-sm pb-3 text-slate-500 hover:text-slate-800" onclick="switchTab('leave', this)">Leave Management</button>
+    </div>
+
+    <!-- TAB 1: Workforce Roster -->
+    <div id="roster" class="tab-panel" style="display: block;">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-base font-bold text-slate-900">Active Staff Profiles</h3>
+            <button class="owlio-btn" style="border: none; padding: 6px 12px; font-size: 0.8rem;"><i class="fas fa-plus"></i> Onboard New Staff</button>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Staff Member</th>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Role & NRC</th>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Contact Details</th>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Date Joined</th>
+                    <th style="padding: 14px 24px; text-align: right; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in staff %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 18px 24px; font-weight: 800; color: #0f172a;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #64748b;">
+                                {{ member.name[:1] }}
+                            </div>
+                            <div>
+                                {{ member.name }}<br>
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: normal;">ID: {{ member.id }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding: 18px 24px;">
+                        <div style="font-weight: 800; color: #1e3a8a;">{{ member.role }}</div>
+                        <div style="font-family: monospace; color: #64748b; font-size: 0.8rem; margin-top: 4px;">{{ member.nrc_number or 'NRC Pending' }}</div>
+                    </td>
+                    <td style="padding: 18px 24px; color: #475569; font-size: 0.85rem;">
+                        <div><i class="fas fa-phone-alt" style="width: 16px; color: #94a3b8;"></i> {{ member.staff_phone or 'N/A' }}</div>
+                        <div style="margin-top: 4px;"><i class="fas fa-user-shield" style="width: 16px; color: #94a3b8;"></i> {{ member.next_of_kin or 'N/A' }}</div>
+                    </td>
+                    <td style="padding: 18px 24px; color: #475569;">
+                        {{ member.date_joined.strftime('%b %d, %Y') if member.date_joined else 'Unknown' }}
+                    </td>
+                    <td style="padding: 18px 24px; text-align: right;">
+                        <button class="owlio-btn" style="padding: 4px 10px; font-size: 0.75rem; background: transparent; border: 1px solid #cbd5e1; color: #475569;">Profile</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TAB 2: Time Cards & Attendance -->
+    <div id="timecards" class="tab-panel" style="display: none;">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-base font-bold text-slate-900">Today's Time Cards ({{ today.strftime('%A, %B %d') }})</h3>
+            
+            <form action="{{ url_for('staff_clock_action') }}" method="POST" style="display: flex; gap: 10px;">
+                <select name="staff_id" class="owlio-select" style="padding: 6px 12px; font-size: 0.8rem;" required>
+                    <option value="" disabled selected>-- Select Staff --</option>
+                    {% for member in staff %}
+                    <option value="{{ member.id }}">{{ member.name }} ({{ member.role }})</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="owlio-btn" style="border: none; padding: 6px 12px; font-size: 0.8rem; background: #0f172a;"><i class="fas fa-clock"></i> Manual Clock</button>
+            </form>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Staff Member</th>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Clock In</th>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Clock Out</th>
+                    <th style="padding: 14px 24px; text-align: center; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in today_attendance %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 14px 24px; font-weight: 800; color: #0f172a;">
+                        {% set staff_member = staff | selectattr('id', 'equalto', record.staff_id) | first %}
+                        {{ staff_member.name if staff_member else 'Unknown ID ' ~ record.staff_id }}
+                    </td>
+                    <td style="padding: 14px 24px; color: #166534; font-family: monospace;">
+                        <i class="fas fa-sign-in-alt"></i> {{ record.clock_in.strftime('%H:%M:%S') if record.clock_in else '--:--:--' }}
+                    </td>
+                    <td style="padding: 14px 24px; color: #991b1b; font-family: monospace;">
+                        <i class="fas fa-sign-out-alt"></i> {{ record.clock_out.strftime('%H:%M:%S') if record.clock_out else 'Active Shift' }}
+                    </td>
+                    <td style="padding: 14px 24px; text-align: center;">
+                        <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 800; 
+                            background: {% if record.status == 'Present' %}#dcfce7{% elif record.status == 'Late' %}#fef3c7{% else %}#fee2e2{% endif %}; 
+                            color: {% if record.status == 'Present' %}#166534{% elif record.status == 'Late' %}#92400e{% else %}#991b1b{% endif %};">
+                            {{ record.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="padding: 18px 24px; color: #64748b; text-align: center;">No time cards clocked today yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TAB 3: Leave Management -->
+    <div id="leave" class="tab-panel" style="display: none;">
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px; align-items: start;">
+            
+            <!-- Submit Leave Request Form -->
+            <div class="border border-slate-200 rounded-lg p-5">
+                <h4 class="font-bold text-slate-800 mb-4">Request Absence/Leave</h4>
+                <form action="{{ url_for('submit_leave') }}" method="POST">
+                    <div style="margin-bottom: 15px;">
+                        <label class="owlio-label">Staff Member</label>
+                        <select name="staff_id" class="owlio-select" required>
+                            <option value="" disabled selected>-- Select Staff --</option>
+                            {% for member in staff %}
+                            <option value="{{ member.id }}">{{ member.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label class="owlio-label">Leave Category</label>
+                        <select name="leave_type" class="owlio-select" required>
+                            <option value="Annual">Annual Leave</option>
+                            <option value="Sick">Sick Leave</option>
+                            <option value="Compassionate">Compassionate Leave</option>
+                            <option value="Maternity">Maternity/Paternity</option>
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div>
+                            <label class="owlio-label">Start Date</label>
+                            <input type="date" name="start_date" class="owlio-input" required>
+                        </div>
+                        <div>
+                            <label class="owlio-label">End Date</label>
+                            <input type="date" name="end_date" class="owlio-input" required>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label class="owlio-label">Reason</label>
+                        <textarea name="reason" class="owlio-input" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="owlio-btn" style="width: 100%; border: none; background: #2563eb;">Submit Request</button>
+                </form>
+            </div>
+
+            <!-- Pending Approvals List -->
+            <div>
+                <h4 class="font-bold text-slate-800 mb-4">Pending Approvals Queue</h4>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% for leave in pending_leaves %}
+                    <div class="border border-slate-200 rounded-lg p-4 flex justify-between items-center" style="background: #f8fafc;">
+                        <div>
+                            {% set staff_member = staff | selectattr('id', 'equalto', leave.staff_id) | first %}
+                            <div style="font-weight: 800; color: #0f172a; margin-bottom: 4px;">{{ staff_member.name if staff_member else 'Unknown' }}</div>
+                            <div style="font-size: 0.8rem; color: #64748b;">
+                                <span style="font-weight: bold; color: #1e3a8a;">{{ leave.leave_type }} Leave</span> &bull; 
+                                {{ leave.start_date.strftime('%b %d') }} to {{ leave.end_date.strftime('%b %d, %Y') }}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #475569; margin-top: 6px; font-style: italic;">"{{ leave.reason or 'No reason provided.' }}"</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <form action="{{ url_for('review_leave', leave_id=leave.id, action='Approved') }}" method="POST">
+                                <button type="submit" class="owlio-btn" style="background: #16a34a; border: none; padding: 6px 12px; font-size: 0.75rem;"><i class="fas fa-check"></i></button>
+                            </form>
+                            <form action="{{ url_for('review_leave', leave_id=leave.id, action='Rejected') }}" method="POST">
+                                <button type="submit" class="owlio-btn" style="background: #dc2626; border: none; padding: 6px 12px; font-size: 0.75rem;"><i class="fas fa-times"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div style="padding: 30px; text-align: center; color: #94a3b8; border: 1px dashed #cbd5e1; border-radius: 8px;">
+                        <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i><br>
+                        No pending leave requests.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.style.display = 'none';
+    });
+    
+    document.querySelectorAll('.tab-btn').forEach(button => {
+        button.classList.remove('active', 'text-blue-600', 'border-b-2', 'border-blue-600');
+        button.classList.add('text-slate-500');
+    });
+    
+    document.getElementById(tabId).style.display = 'block';
+    btn.classList.remove('text-slate-500');
+    btn.classList.add('active', 'text-blue-600', 'border-b-2', 'border-blue-600');
+}
+</script>
+{% endblock %}
