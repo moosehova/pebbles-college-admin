@@ -2749,33 +2749,48 @@ def hr_department():
     )
 
 @app.route('/hr/attendance/clock', methods=['POST'])
-@login_required
 def staff_clock_action():
-    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    username = request.form.get('username', '').strip().lower()
+    action = request.form.get('action') # clock_in or clock_out
     
-    # Can allow staff to clock themselves in, or admin to override
-    staff_id = request.form.get('staff_id') or current_user.staff_id
-    if not staff_id:
-        flash("No active profile linked to this user account.", "danger")
-        return redirect(request.referrer)
+    if not username:
+        flash("Please insert your system username identity token.", "danger")
+        return redirect(url_for('kiosk_view'))
         
+    # Query corresponding credentials record loop
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.staff_id:
+        flash("Profile matching credential token not found.", "danger")
+        return redirect(url_for('kiosk_view'))
+        
+    staff_member = Staff.query.get(user.staff_id)
     today = datetime.utcnow().date()
     now = datetime.utcnow()
     
-    record = StaffAttendance.query.filter_by(staff_id=staff_id, date=today).first()
+    attendance_record = StaffAttendance.query.filter_by(staff_id=staff_member.id, date=today).first()
     
-    if not record:
-        # Create a clean clock-in stamp
-        record = StaffAttendance(staff_id=staff_id, date=today, clock_in=now, status='Present')
-        db.session.add(record)
-        flash("Clock-in recorded successfully.", "success")
-    else:
-        # Update with clock-out stamp
-        record.clock_out = now
-        flash("Clock-out recorded successfully.", "success")
-        
-    db.session.commit()
-    return redirect(request.referrer)
+    if action == 'clock_in':
+        if attendance_record:
+            flash(f"Hi {staff_member.name}, you have already clocked in for today.", "warning")
+        else:
+            new_record = StaffAttendance(staff_id=staff_member.id, date=today, clock_in=now, status='Present')
+            db.session.add(new_record)
+            db.session.commit()
+            flash(f"Welcome {staff_member.name}! Clock-in registered successfully.", "success")
+            
+    elif action == 'clock_out':
+        if not attendance_record:
+            flash(f"Cannot clock out. No arrival record found for today.", "danger")
+        else:
+            attendance_record.clock_out = now
+            db.session.commit()
+            flash(f"Goodbye {staff_member.name}! Shift completed successfully.", "success")
+            
+    return redirect(url_for('kiosk_view'))
+
+@app.route('/hr/kiosk')
+def kiosk_view():
+    return render_template('hr_kiosk.html')
 
 @app.route('/hr/leave/request', methods=['POST'])
 @login_required
