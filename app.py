@@ -17,7 +17,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance
+from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution
 
 # ------------------- APP INITIALIZATION -------------------
 app = Flask(__name__)
@@ -2615,6 +2615,97 @@ def log_maintenance_ticket():
     flash("Maintenance service ticket dispatched.", "success")
     return redirect(url_for('maintenance_hub'))
 
+# ====================================================================
+# UNIFORM & MERCHANDISE PIPELINES
+# ====================================================================
+@app.route('/finance/uniforms')
+@login_required
+def uniform_hub():
+    if not restrict_access(['admin', 'staff', 'accountant']):
+        return redirect(url_for('parent_portal'))
+        
+    items = UniformItem.query.all()
+    all_variants = UniformVariant.query.all()
+    recent_distributions = UniformDistribution.query.order_by(UniformDistribution.date_issued.desc()).limit(20).all()
+    
+    # Automatically generate an alert list for items below their minimum reorder levels
+    low_text_alerts = [v for v in all_variants if v.stock_quantity <= v.reorder_level]
+    
+    return render_template(
+        'admin/uniforms.html', 
+        items=items, 
+        recent_distributions=recent_distributions, 
+        low_text_alerts=low_text_alerts
+    )
+
+@app.route('/finance/uniforms/item/add', methods=['POST'])
+@login_required
+def add_uniform_item():
+    if not restrict_access(['admin', 'accountant']): 
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    new_item = UniformItem(
+        name=request.form.get('name'),
+        category=request.form.get('category', 'Uniform'),
+        description=request.form.get('description'),
+        unit_price=float(request.form.get('unit_price', 0.0))
+    )
+    db.session.add(new_item)
+    db.session.commit()
+    flash("New uniform asset item added to tracking registry.", "success")
+    return redirect(url_for('uniform_hub'))
+
+@app.route('/finance/uniforms/variant/add', methods=['POST'])
+@login_required
+def add_uniform_variant():
+    if not restrict_access(['admin', 'accountant']): 
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    item_id = request.form.get('item_id')
+    new_variant = UniformVariant(
+        item_id=item_id,
+        size=request.form.get('size'),
+        sku=request.form.get('sku') or None,
+        stock_quantity=int(request.form.get('stock_quantity', 0)),
+        reorder_level=int(request.form.get('reorder_level', 5))
+    )
+    db.session.add(new_variant)
+    db.session.commit()
+    flash("Stock size variant added successfully.", "success")
+    return redirect(url_for('uniform_hub'))
+
+@app.route('/finance/uniforms/issue', methods=['POST'])
+@login_required
+def issue_uniform():
+    if not restrict_access(['admin', 'staff', 'accountant']): 
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    variant_id = request.form.get('variant_id')
+    qty_requested = int(request.form.get('quantity', 1))
+    variant = UniformVariant.query.get_or_404(variant_id)
+    
+    if variant.stock_quantity < qty_requested:
+        flash(f"Insufficient stock availability. Only {variant.stock_quantity} units remaining.", "danger")
+        return redirect(url_for('uniform_hub'))
+        
+    total_calculated_cost = variant.item.unit_price * qty_requested
+    
+    distribution = UniformDistribution(
+        variant_id=variant_id,
+        student_id=request.form.get('student_id') or None,
+        quantity=qty_requested,
+        total_cost=total_calculated_cost,
+        status='Issued',
+        payment_status=request.form.get('payment_status', 'Paid')
+    )
+    
+    # Deduct structural balance from inventory
+    variant.stock_quantity -= qty_requested
+    
+    db.session.add(distribution)
+    db.session.commit()
+    flash(f"Uniform order processed cleanly. Total: K{total_calculated_cost:,.2f}", "success")
+    return redirect(url_for('uniform_hub'))
 # ------------------- RUN APP -------------------
 if __name__ == '__main__':
     with app.app_context():

@@ -1,0 +1,190 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <div>
+        <h2 class="page-title">Uniform Inventory</h2>
+        <p class="page-subtitle">Manage uniform catalog, track variant sizes, and log student distributions.</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        {% if low_text_alerts|length > 0 %}
+        <span class="owlio-btn" style="background: #fee2e2; color: #991b1b; border: none; font-weight: 800;">
+            <i class="fas fa-exclamation-triangle"></i> {{ low_text_alerts|length }} Low Stock Alerts
+        </span>
+        {% endif %}
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px; margin-bottom: 24px; align-items: start;">
+    <!-- Add Item and Variant Forms -->
+    <div>
+        <!-- Add Uniform Item Form -->
+        <div class="owlio-card" style="margin-bottom: 24px;">
+            <div class="owlio-header">
+                <h3 class="owlio-title">Create Catalog Item</h3>
+            </div>
+            <form action="{{ url_for('add_uniform_item') }}" method="POST">
+                <div style="margin-bottom: 15px;">
+                    <label class="owlio-label">Item Name</label>
+                    <input type="text" name="name" class="owlio-input" placeholder="e.g. School Blazer" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label class="owlio-label">Category</label>
+                        <select name="category" class="owlio-select">
+                            <option value="Uniform">Uniform</option>
+                            <option value="Sportswear">Sportswear</option>
+                            <option value="Accessories">Accessories</option>
+                            <option value="Badges">Badges</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="owlio-label">Unit Price (K)</label>
+                        <input type="number" step="0.01" name="unit_price" class="owlio-input" value="0.00" required>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label class="owlio-label">Description</label>
+                    <textarea name="description" class="owlio-input" rows="2"></textarea>
+                </div>
+                <button type="submit" class="owlio-btn" style="width: 100%; border: none;">Add Item</button>
+            </form>
+        </div>
+
+        <!-- Add Variant Form -->
+        <div class="owlio-card">
+            <div class="owlio-header">
+                <h3 class="owlio-title">Add Stock Variant (Size)</h3>
+            </div>
+            <form action="{{ url_for('add_uniform_variant') }}" method="POST">
+                <div style="margin-bottom: 15px;">
+                    <label class="owlio-label">Select Item</label>
+                    <select name="item_id" class="owlio-select" required>
+                        <option value="" disabled selected>-- Choose Catalog Item --</option>
+                        {% for item in items %}
+                        <option value="{{ item.id }}">{{ item.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label class="owlio-label">Size / Fit</label>
+                        <input type="text" name="size" class="owlio-input" placeholder="e.g. Medium" required>
+                    </div>
+                    <div>
+                        <label class="owlio-label">SKU (Barcode)</label>
+                        <input type="text" name="sku" class="owlio-input">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label class="owlio-label">Initial Stock</label>
+                        <input type="number" name="stock_quantity" class="owlio-input" value="0" required>
+                    </div>
+                    <div>
+                        <label class="owlio-label">Reorder Level</label>
+                        <input type="number" name="reorder_level" class="owlio-input" value="5" required>
+                    </div>
+                </div>
+                <button type="submit" class="owlio-btn" style="width: 100%; border: none; background: #0f172a;">Add Stock Variant</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Active Inventory Table -->
+    <div class="owlio-card" style="padding: 0; overflow: hidden;">
+        <div class="owlio-header" style="padding: 20px 24px;">
+            <h3 class="owlio-title">Active Inventory & Distribution</h3>
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Item Variant</th>
+                    <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Category / Price</th>
+                    <th style="padding: 14px 24px; text-align: center; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Stock</th>
+                    <th style="padding: 14px 24px; text-align: right; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Issue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    {% for variant in item.variants %}
+                    <tr style="border-bottom: 1px solid #f1f5f9; {% if variant in low_text_alerts %}background: #fef2f2;{% endif %}">
+                        <td style="padding: 18px 24px;">
+                            <div style="font-weight: 800; color: #0f172a;">{{ item.name }}</div>
+                            <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">
+                                <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: #e2e8f0; font-weight: 700;">Size: {{ variant.size }}</span>
+                                {% if variant.sku %}<span style="margin-left: 8px; font-family: monospace;">SKU: {{ variant.sku }}</span>{% endif %}
+                            </div>
+                        </td>
+                        <td style="padding: 18px 24px;">
+                            <div style="color: #475569; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">{{ item.category }}</div>
+                            <div style="color: #166534; font-weight: 800; margin-top: 4px;">K{{ '%.2f'|format(item.unit_price) }}</div>
+                        </td>
+                        <td style="padding: 18px 24px; text-align: center;">
+                            <div style="font-size: 1.2rem; font-weight: 900; color: {{ '#991b1b' if variant in low_text_alerts else '#1e3a8a' }};">
+                                {{ variant.stock_quantity }}
+                            </div>
+                            {% if variant in low_text_alerts %}
+                            <div style="font-size: 0.7rem; color: #991b1b; font-weight: 700; margin-top: 4px;">LOW STOCK</div>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 18px 24px; text-align: right;">
+                            {% if variant.stock_quantity > 0 %}
+                            <form action="{{ url_for('issue_uniform') }}" method="POST" style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                                <input type="hidden" name="variant_id" value="{{ variant.id }}">
+                                <input type="number" name="student_id" placeholder="Student ID" class="owlio-input" style="width: 90px; padding: 6px; font-size: 0.75rem;" required>
+                                <input type="number" name="quantity" value="1" min="1" max="{{ variant.stock_quantity }}" class="owlio-input" style="width: 60px; padding: 6px; font-size: 0.75rem;">
+                                <button type="submit" class="owlio-btn" style="padding: 6px 12px; font-size: 0.75rem; border: none;"><i class="fas fa-shopping-cart"></i></button>
+                            </form>
+                            {% else %}
+                            <span style="color: #94a3b8; font-size: 0.8rem; font-weight: 700;">OUT OF STOCK</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="4" style="padding: 18px 24px; color: #64748b; text-align: center;">No items added to catalog yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="owlio-card" style="padding: 0; overflow: hidden;">
+    <div class="owlio-header" style="padding: 20px 24px;">
+        <h3 class="owlio-title">Recent Distributions</h3>
+    </div>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #f8fafc;">
+            <tr>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Date</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Item</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Student</th>
+                <th style="padding: 14px 24px; text-align: right; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Qty</th>
+                <th style="padding: 14px 24px; text-align: right; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dist in recent_distributions %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 14px 24px; color: #475569;">{{ dist.date_issued.strftime('%b %d, %Y') }}</td>
+                <td style="padding: 14px 24px; font-weight: 800; color: #0f172a;">
+                    {{ dist.variant.item.name }}
+                    <span style="color: #64748b; font-weight: normal; font-size: 0.8rem;">(Size: {{ dist.variant.size }})</span>
+                </td>
+                <td style="padding: 14px 24px; color: #475569;">
+                    {% if dist.student_id %}Student ID: {{ dist.student_id }}{% else %}N/A{% endif %}
+                </td>
+                <td style="padding: 14px 24px; text-align: right; font-weight: 800;">{{ dist.quantity }}</td>
+                <td style="padding: 14px 24px; text-align: right; font-weight: 800; color: #166534;">K{{ '%.2f'|format(dist.total_cost) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="padding: 18px 24px; color: #64748b; text-align: center;">No recent uniform distributions.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

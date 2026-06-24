@@ -287,3 +287,43 @@ class BuildingMaintenance(db.Model):
     status = db.Column(db.String(20), default='Pending') # Pending, In Progress, Completed, Deferred
     estimated_cost = db.Column(db.Float, default=0.0)
     actual_cost = db.Column(db.Float, default=0.0)
+
+# ====================================================================
+# 5. UNIFORM & MERCHANDISE INVENTORY TRACKING
+# ====================================================================
+class UniformItem(db.Model):
+    __tablename__ = 'uniform_items'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False) # e.g., "School Blazer", "Physical Education Polo"
+    category = db.Column(db.String(100), default='Uniform') # Uniform, Sportswear, Accessories, Badges
+    description = db.Column(db.Text, nullable=True)
+    unit_price = db.Column(db.Float, default=0.0) # Selling price to parents/students
+    
+    # Relationships
+    variants = db.relationship('UniformVariant', backref='item', cascade='all, delete-orphan', lazy=True)
+
+class UniformVariant(db.Model):
+    __tablename__ = 'uniform_variants'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('uniform_items.id'), nullable=False)
+    size = db.Column(db.String(50), nullable=False) # e.g., "Small", "Medium", "Size 28", "Size 32"
+    sku = db.Column(db.String(100), unique=True, nullable=True) # Stock Keeping Unit barcode reference
+    stock_quantity = db.Column(db.Integer, default=0)
+    reorder_level = db.Column(db.Integer, default=5) # Alert baseline when stock is running low
+    
+    distributions = db.relationship('UniformDistribution', backref='variant', lazy=True)
+
+class UniformDistribution(db.Model):
+    __tablename__ = 'uniform_distributions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    variant_id = db.Column(db.Integer, db.ForeignKey('uniform_variants.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=True)
+    
+    quantity = db.Column(db.Integer, default=1, nullable=False)
+    total_cost = db.Column(db.Float, default=0.0)
+    date_issued = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    status = db.Column(db.String(50), default='Issued') # Issued, Pending, Exchanged
+    payment_status = db.Column(db.String(50), default='Paid') # Paid, Added to Fees Account
