@@ -1682,6 +1682,22 @@ def expenses():
     return render_template('finance/expenses.html', expenses=all_expenses, staff_list=staff_list)
 
 
+@app.route('/finance/expenses/<int:expense_id>', methods=['DELETE'])
+@login_required
+def delete_expense(expense_id):
+    if hasattr(current_user, 'role') and current_user.role == 'parent':
+        return jsonify({"success": False, "error": "Unauthorized access."}), 403
+
+    expense = Expense.query.get_or_404(expense_id)
+    
+    try:
+        db.session.delete(expense)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Expense deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 # --- STAFF & PAYROLL HUB ---
 @app.route('/finance/staff')
