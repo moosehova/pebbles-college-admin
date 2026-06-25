@@ -16,12 +16,7 @@
             <br>
             <div class="owlio-form-group">
                 <label class="owlio-label">Level</label>
-                <select name="level" class="owlio-select">
-                    <option value="Toddler">Montessori Toddler (1-3y)</option>
-                    <option value="Primary">Montessori Primary (3-6y)</option>
-                    <option value="Lower Elementary">Lower Elementary (G1-3)</option>
-                    <option value="Upper Elementary">Upper Elementary (G4-7)</option>
-                </select>
+                <input type="text" name="level" class="owlio-input" placeholder="e.g. Early Learning Centre (ELC)" required>
             </div>
             <button type="submit" class="owlio-btn" style="width: 100%; margin-top: 20px;">Create Room</button>
         </form>
@@ -29,11 +24,12 @@
 
     <div class="owlio-card" style="padding: 0; overflow: hidden;">
         <table style="width: 100%; border-collapse: collapse;">
-            <thead style="background: #f8fafc;">
+            <thead>
                 <tr>
                     <th style="padding: 20px; text-align: left; font-size: 0.75rem; color: gray;">ROOM NAME</th>
                     <th style="padding: 20px; text-align: left; font-size: 0.75rem; color: gray;">LEVEL</th>
                     <th style="padding: 20px; text-align: left; font-size: 0.75rem; color: gray;">STUDENTS</th>
+                    <th style="padding: 20px; text-align: right; font-size: 0.75rem; color: gray;">ACTIONS</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,6 +38,13 @@
                     <td style="padding: 20px; font-weight: 600;">{{ env.name }}</td>
                     <td style="padding: 20px; color: #64748b;">{{ env.level }}</td>
                     <td style="padding: 20px;"><span class="status-badge active">{{ env.students|length }} Kids</span></td>
+                    <td style="padding: 20px; text-align: right;">
+                        <form action="{{ url_for('delete_env', env_id=env.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this class?');">
+                            <button type="submit" class="owlio-btn" style="background: none; border: none; color: #dc2626; padding: 5px; font-size: 1.1rem; cursor: pointer;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

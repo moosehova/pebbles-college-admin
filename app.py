@@ -954,6 +954,26 @@ def create_env():
     new_env = Environment(name=request.form['name'], level=request.form['level'])
     db.session.add(new_env)
     db.session.commit()
+    flash('Environment created successfully!', 'success')
+    return redirect(url_for('manage_academics'))
+
+@app.route('/academics/delete_env/<int:env_id>', methods=['POST'])
+@login_required
+def delete_env(env_id):
+    if not restrict_access(['admin']):
+        flash('Only administrators can delete classes.', 'danger')
+        return redirect(url_for('manage_academics'))
+    
+    env_to_delete = Environment.query.get_or_404(env_id)
+    
+    # Check if there are students in this class
+    if env_to_delete.students:
+        flash(f'Cannot delete {env_to_delete.name}. Please reassign its {len(env_to_delete.students)} students first.', 'danger')
+        return redirect(url_for('manage_academics'))
+        
+    db.session.delete(env_to_delete)
+    db.session.commit()
+    flash('Class deleted successfully.', 'success')
     return redirect(url_for('manage_academics'))
 
 
