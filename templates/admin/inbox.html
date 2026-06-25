@@ -20,9 +20,9 @@
                 {{ msg.content }}
             </p>
             <div style="margin-top: 10px;">
-                <a href="#" style="font-size: 0.8rem; color: #3b82f6; text-decoration: none; font-weight: 600;">
+                <button onclick="openReplyModal({{ msg.sender_id }}, '{{ msg.sender.username }}')" style="font-size: 0.8rem; color: #3b82f6; background: transparent; border: none; cursor: pointer; font-weight: 600; padding: 0;">
                     <i class="fas fa-reply"></i> Reply to Parent
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -33,4 +33,29 @@
     </div>
     {% endfor %}
 </div>
+
+<!-- Reply Modal -->
+<div id="replyModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
+    <div class="owlio-card" style="width: 100%; max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #0f172a;"><i class="fas fa-reply"></i> Reply to <span id="replyToUsername">Parent</span></h3>
+            <button type="button" onclick="document.getElementById('replyModal').style.display='none'" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+        <form action="{{ url_for('admin_reply_message') }}" method="POST">
+            <input type="hidden" name="receiver_id" id="replyReceiverId">
+            <div class="owlio-form-group">
+                <textarea name="message_content" class="owlio-input" rows="5" placeholder="Type your response here..." required></textarea>
+            </div>
+            <button type="submit" class="owlio-btn" style="width: 100%; margin-top: 20px; background: #3b82f6; border: none;">Send Reply</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openReplyModal(receiverId, username) {
+        document.getElementById('replyReceiverId').value = receiverId;
+        document.getElementById('replyToUsername').innerText = username;
+        document.getElementById('replyModal').style.display = 'flex';
+    }
+</script>
 {% endblock %}

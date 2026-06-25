@@ -573,6 +573,29 @@ def inbox():
     messages = Message.query.order_by(Message.timestamp.desc()).all()
     return render_template('admin/inbox.html', messages=messages)
 
+@app.route('/admin/reply-message', methods=['POST'])
+@login_required
+def admin_reply_message():
+    if hasattr(current_user, 'role') and current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+        
+    receiver_id = request.form.get('receiver_id')
+    message_content = (request.form.get('message_content') or '').strip()
+    
+    if not receiver_id or not message_content:
+        flash('Invalid reply. Message cannot be empty.', 'danger')
+        return redirect(url_for('inbox'))
+        
+    new_msg = Message(
+        sender_id=current_user.id,
+        receiver_id=receiver_id,
+        content=message_content
+    )
+    db.session.add(new_msg)
+    db.session.commit()
+    
+    flash('Reply sent successfully to parent.', 'success')
+    return redirect(url_for('inbox'))
 
 @app.route('/parent/send-message', methods=['POST'])
 @login_required
