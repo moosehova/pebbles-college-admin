@@ -1142,6 +1142,34 @@ def promotion_hub():
     envs = Environment.query.all()
     return render_template('academics/promotion.html', environments=envs)
 
+@app.route('/academics/promote_process', methods=['POST'])
+@login_required
+def promote_process():
+    if not restrict_access(['admin', 'staff']):
+        return redirect(url_for('dashboard'))
+    
+    from_env_id = request.form.get('from_env')
+    to_env_id = request.form.get('to_env')
+    
+    if not from_env_id or not to_env_id:
+        flash('Please select both origin and destination.', 'danger')
+        return redirect(url_for('promotion_hub'))
+        
+    students_to_promote = Student.query.filter_by(class_id=from_env_id).all()
+    
+    if to_env_id == 'alumni':
+        # Mark as alumni by setting class_id to None
+        for student in students_to_promote:
+            student.class_id = None
+        flash(f'Graduated {len(students_to_promote)} students to Alumni.', 'success')
+    else:
+        # Move to new class
+        for student in students_to_promote:
+            student.class_id = to_env_id
+        flash(f'Promoted {len(students_to_promote)} students successfully.', 'success')
+        
+    db.session.commit()
+    return redirect(url_for('promotion_hub'))
 
 # --- CREATE PARENT ACCOUNT ---
 @app.route('/people/create-parent', methods=['GET', 'POST'])
