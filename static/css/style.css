@@ -460,6 +460,18 @@ body {
         margin-bottom: 12px;
     }
 
+    /* Global fixes for inline grids and max-widths on mobile */
+    [style*="grid-template-columns"]:not(.keep-grid-mobile) {
+        grid-template-columns: 1fr !important;
+    }
+    .owlio-grid {
+        grid-template-columns: 1fr !important;
+    }
+    [style*="max-width"] {
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
     /* Search bar shrink */
     #globalSearch {
         width: 110px !important;

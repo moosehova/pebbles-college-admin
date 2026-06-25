@@ -5,7 +5,7 @@
     <p class="page-subtitle">Generate secure login credentials for student guardians.</p>
 </div>
 
-<div class="owlio-card" style="max-width: 600px; margin: 0 auto; padding: 40px;">
+<div class="owlio-card form-card">
     <form action="/people/create-parent" method="POST">
         <div class="owlio-form-group">
             <label class="owlio-label">Link to Student</label>
@@ -34,4 +34,11 @@
         </div>
     </form>
 </div>
+
+<style>
+    .form-card {
+        max-width: 600px; 
+        margin: 0 auto; 
+    }
+</style>
 {% endblock %}

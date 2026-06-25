@@ -1,9 +1,13 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="owlio-card" style="max-width: 800px; margin: 0 auto;">
-    <div class="owlio-header"><h3 class="owlio-title">Enroll New Student</h3></div>
+<div class="page-header">
+    <h2 class="page-title">Enroll New Student</h2>
+    <p class="page-subtitle">Add a new student to the system and assign an environment.</p>
+</div>
+
+<div class="owlio-card form-card-wide">
     <form action="{{ url_for('enroll_student') }}" method="POST">
-        <div class="owlio-grid">
+        <div class="form-grid-2">
             <div class="owlio-form-group">
                 <label class="owlio-label">First Name</label>
                 <input type="text" name="first_name" class="owlio-input" required>
@@ -18,19 +22,41 @@
             </div>
             <div class="owlio-form-group">
                 <label class="owlio-label">Assign Environment</label>
-                <select name="class_id" class="owlio-select">
+                <select name="class_id" class="owlio-select" required>
+                    <option value="">-- Select Environment --</option>
                     {% for env in environments %}
                     <option value="{{ env.id }}">{{ env.name }}</option>
                     {% endfor %}
                 </select>
             </div>
         </div>
-        <br>
-        <div class="owlio-form-group">
+        
+        <div class="owlio-form-group" style="margin-top: 20px;">
             <label class="owlio-label">Authorized Pick-up Persons</label>
             <textarea name="pickup_auth" class="owlio-input" rows="3" placeholder="Names and phone numbers of people allowed to collect the child..."></textarea>
         </div>
-        <button type="submit" class="owlio-btn" style="margin-top: 30px;">Complete Enrollment</button>
+        
+        <button type="submit" class="owlio-btn" style="margin-top: 30px; width: 100%;">
+            <i class="fas fa-user-plus"></i> Complete Enrollment
+        </button>
     </form>
 </div>
+
+<style>
+    .form-card-wide {
+        max-width: 800px; 
+        margin: 0 auto;
+    }
+    .form-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    @media (max-width: 768px) {
+        .form-grid-2 {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+    }
+</style>
 {% endblock %}
