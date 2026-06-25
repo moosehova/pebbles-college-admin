@@ -1133,10 +1133,16 @@ def view_report(student_id):
         Observation.student_id == student_id,
         Observation.date >= now.replace(day=1)
     ).all()
+    # 3. Get Academic Grades
+    grades = Grade.query.filter_by(student_id=student_id).order_by(Grade.created_at.desc()).all()
+    overall_average = round(sum(grade.score for grade in grades) / len(grades), 1) if grades else 0
+
     return render_template('people/report.html', 
                            student=student, 
                            att_percent=att_percent, 
                            observations=observations,
+                           grades=grades,
+                           overall_average=overall_average,
                            month_name=now.strftime('%B'),
                            year=now.year)
 

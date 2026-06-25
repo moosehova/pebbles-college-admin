@@ -56,6 +56,37 @@
         <p class="no-milestones">No specific milestones recorded this month. Focus was on general Montessori exploration.</p>
         {% endfor %}
     </div>
+
+    {% if grades %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 15px;">
+        <h3 class="section-title" style="margin: 0;">Academic Performance</h3>
+        <div class="average-badge" style="background: #f1f5f9; padding: 6px 12px; border-radius: 6px; font-weight: 800; color: #0f172a; border: 1px solid #e2e8f0;">
+            Overall Average: <span style="color: #2563eb;">{{ overall_average }}%</span>
+        </div>
+    </div>
+    <div class="grades-container" style="margin-bottom: 30px;">
+        <table class="grades-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 10px; font-size: 0.8rem; text-transform: uppercase; color: #64748b;">Subject</th>
+                    <th style="padding: 10px; font-size: 0.8rem; text-transform: uppercase; color: #64748b;">Term</th>
+                    <th style="padding: 10px; font-size: 0.8rem; text-transform: uppercase; color: #64748b;">Score (%)</th>
+                    <th style="padding: 10px; font-size: 0.8rem; text-transform: uppercase; color: #64748b;">Teacher's Comment</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grade in grades %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px; font-weight: 600; color: #0f172a;">{{ grade.subject }}</td>
+                    <td style="padding: 10px; font-size: 0.9rem; color: #475569;">{{ grade.term }}</td>
+                    <td style="padding: 10px; font-weight: 700; color: {% if grade.score >= 80 %}#10b981{% elif grade.score >= 50 %}#f59e0b{% else %}#dc2626{% endif %};">{{ grade.score }}</td>
+                    <td style="padding: 10px; font-size: 0.85rem; color: #475569; font-style: italic;">{{ grade.comment or 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
     
     <div class="signatures-grid">
         <div class="signature-box">
