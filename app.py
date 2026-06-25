@@ -1796,7 +1796,10 @@ def add_staff():
 
     name = request.form.get('name')
     role = request.form.get('role')
-    salary = request.form.get('salary')
+    try:
+        salary = float(request.form.get('salary') or 0)
+    except (ValueError, TypeError):
+        salary = 0.0
     username = request.form.get('username', '').strip().lower()
     password = request.form.get('password')
 
