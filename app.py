@@ -2809,6 +2809,75 @@ def hr_department():
         today=today
     )
 
+@app.route('/hr/staff/<int:staff_id>', methods=['GET'])
+@login_required
+def staff_profile(staff_id):
+    if not restrict_access(['admin']):
+        return redirect(url_for('parent_portal'))
+    staff_member = Staff.query.get_or_404(staff_id)
+    linked_user = User.query.filter_by(staff_id=staff_id).first()
+    return render_template('admin/staff_profile.html', staff=staff_member, linked_user=linked_user)
+
+@app.route('/hr/staff/<int:staff_id>/edit', methods=['POST'])
+@login_required
+def edit_staff(staff_id):
+    if not restrict_access(['admin']):
+        return redirect(url_for('parent_portal'))
+    staff_member = Staff.query.get_or_404(staff_id)
+    
+    staff_member.name = request.form.get('name', staff_member.name)
+    staff_member.role = request.form.get('role', staff_member.role)
+    staff_member.staff_phone = request.form.get('staff_phone', staff_member.staff_phone)
+    staff_member.nrc_number = request.form.get('nrc_number', staff_member.nrc_number)
+    staff_member.next_of_kin = request.form.get('next_of_kin', staff_member.next_of_kin)
+    try:
+        staff_member.salary_amount = float(request.form.get('salary_amount', staff_member.salary_amount))
+    except:
+        pass
+
+    db.session.commit()
+    flash('Staff details updated successfully.', 'success')
+    return redirect(url_for('staff_profile', staff_id=staff_member.id))
+
+@app.route('/hr/staff/<int:staff_id>/reset_password', methods=['POST'])
+@login_required
+def reset_staff_password(staff_id):
+    if not restrict_access(['admin']):
+        return redirect(url_for('parent_portal'))
+    linked_user = User.query.filter_by(staff_id=staff_id).first()
+    if linked_user:
+        new_password = request.form.get('new_password')
+        if new_password:
+            linked_user.password = generate_password_hash(new_password)
+            db.session.commit()
+            flash('Password reset successfully.', 'success')
+        else:
+            flash('Invalid password provided.', 'danger')
+    else:
+        flash('No user account linked to this staff member.', 'danger')
+    return redirect(url_for('staff_profile', staff_id=staff_id))
+
+@app.route('/hr/staff/<int:staff_id>/delete', methods=['POST'])
+@login_required
+def delete_staff(staff_id):
+    if not restrict_access(['admin']):
+        return redirect(url_for('parent_portal'))
+    
+    staff_member = Staff.query.get_or_404(staff_id)
+    linked_user = User.query.filter_by(staff_id=staff_id).first()
+    
+    if linked_user:
+        db.session.delete(linked_user)
+    
+    # Also delete their attendance records
+    StaffAttendance.query.filter_by(staff_id=staff_id).delete()
+    
+    db.session.delete(staff_member)
+    db.session.commit()
+    
+    flash('Staff member and their login credentials have been deleted.', 'success')
+    return redirect(url_for('hr_department'))
+
 @app.route('/hr/attendance/clock', methods=['POST'])
 def staff_clock_action():
     username = request.form.get('username', '').strip().lower()

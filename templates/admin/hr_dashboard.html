@@ -88,7 +88,7 @@
                     {{ member.date_joined.strftime('%b %d, %Y') if member.date_joined else 'Unknown' }}
                 </td>
                 <td style="padding: 18px 24px; text-align: right;">
-                    <button class="owlio-btn" style="padding: 4px 10px; font-size: 0.75rem; background: transparent; border: 1px solid #cbd5e1; color: #475569;">Profile</button>
+                    <a href="{{ url_for('staff_profile', staff_id=member.id) }}" class="owlio-btn" style="padding: 4px 10px; font-size: 0.75rem; background: transparent; border: 1px solid #cbd5e1; color: #475569; text-decoration: none;">Profile</a>
                 </td>
             </tr>
             {% endfor %}
