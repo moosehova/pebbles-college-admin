@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title"><i class="far fa-envelope-open"></i> School Communications</h2>
+    <p class="page-subtitle">Messages and updates from the administration.</p>
+</div>
+
+<div class="owlio-card" style="max-width: 900px; margin: 0 auto; border-top: 4px solid #1e3a8a;">
+    {% for msg in messages %}
+    <div style="padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; gap: 20px; align-items: start;">
+        <div style="width: 45px; height: 45px; background: #e0f2fe; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e3a8a; font-weight: 800;">
+            A
+        </div>
+        <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between;">
+                <h4 style="margin: 0; color: #1e293b;">From: Administration</h4>
+                <small style="color: #94a3b8;">{{ msg.timestamp.strftime('%d %b, %H:%M') }}</small>
+            </div>
+            <p style="margin-top: 10px; color: #475569; line-height: 1.5; background: #f8fafc; padding: 15px; border-radius: 8px;">
+                {{ msg.content }}
+            </p>
+            <div style="margin-top: 10px;">
+                <button onclick="openReplyModal()" style="font-size: 0.8rem; color: #3b82f6; background: transparent; border: none; cursor: pointer; font-weight: 600; padding: 0;">
+                    <i class="fas fa-reply"></i> Reply to Admin
+                </button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 60px;">
+        <i class="far fa-folder-open" style="font-size: 3rem; color: #e2e8f0;"></i>
+        <p style="color: #94a3b8; margin-top: 15px;">Your inbox is empty. No new messages from the school.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Reply Modal for Parents -->
+<div id="replyModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
+    <div class="owlio-card" style="width: 100%; max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #0f172a;"><i class="fas fa-reply"></i> Send Message to School</h3>
+            <button type="button" onclick="document.getElementById('replyModal').style.display='none'" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+        <form action="{{ url_for('send_message') }}" method="POST">
+            <div class="owlio-form-group">
+                <textarea name="message_content" class="owlio-input" rows="5" placeholder="Type your message to the administration..." required></textarea>
+            </div>
+            <button type="submit" class="owlio-btn" style="width: 100%; margin-top: 20px; background: #3b82f6; border: none;">Send Message</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openReplyModal() {
+        document.getElementById('replyModal').style.display = 'flex';
+    }
+</script>
+{% endblock %}

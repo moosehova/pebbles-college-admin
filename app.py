@@ -566,12 +566,26 @@ def parent_portal():
 @app.route('/inbox')
 @login_required
 def inbox():
-    if hasattr(current_user, 'role') and current_user.role != 'admin':
-        return redirect(url_for('dashboard'))
-    # Fetch messages for the admin (optional: filter by recipient)
     from models import Message
-    messages = Message.query.order_by(Message.timestamp.desc()).all()
-    return render_template('admin/inbox.html', messages=messages)
+    
+    if hasattr(current_user, 'role'):
+        if current_user.role == 'admin':
+            # For admin, get messages where receiver_id is the admin, or perhaps all messages
+            # The current system had admin seeing all messages, so let's keep that but ordered
+            messages = Message.query.filter_by(receiver_id=current_user.id).order_by(Message.timestamp.desc()).all()
+            return render_template('admin/inbox.html', messages=messages)
+            
+        elif current_user.role == 'parent':
+            # Parents only see messages sent to them
+            messages = Message.query.filter_by(receiver_id=current_user.id).order_by(Message.timestamp.desc()).all()
+            # Mark all as read when viewed
+            for msg in messages:
+                if not msg.is_read:
+                    msg.is_read = True
+            db.session.commit()
+            return render_template('parent/inbox.html', messages=messages)
+
+    return redirect(url_for('dashboard'))
 
 @app.route('/admin/reply-message', methods=['POST'])
 @login_required
