@@ -1410,6 +1410,31 @@ def school_settings():
 
     return render_template('admin/settings.html', settings=settings)
 
+@app.route('/admin/download-student-import-template', methods=['GET'])
+@login_required
+def download_student_import_template():
+    if hasattr(current_user, 'role') and current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+    
+    import csv
+    import io
+    from flask import Response
+
+    si = io.StringIO()
+    writer = csv.writer(si)
+    
+    writer.writerow(['first_name', 'last_name', 'fee', 'environment'])
+    writer.writerow(['John', 'Doe', '1500', 'Grade 1'])
+    writer.writerow(['Jane', 'Smith', '2000', 'Grade 2'])
+    
+    output = si.getvalue()
+    si.close()
+    
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-disposition": "attachment; filename=student_import_template.csv"}
+    )
 
 @app.route('/admin/import-students', methods=['POST'])
 @login_required

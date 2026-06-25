@@ -51,6 +51,11 @@
         <form action="{{ url_for('import_students') }}" method="POST" enctype="multipart/form-data" style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
             <div>
                 <label class="owlio-label">Student File</label>
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                    <a href="{{ url_for('download_student_import_template') }}" style="font-size: 0.8rem; font-weight: 600; color: #1e3a8a; text-decoration: none; padding: 4px 10px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe;">
+                        <i class="fas fa-download"></i> Download Template CSV
+                    </a>
+                </div>
                 <input type="file" name="csv_file" class="owlio-input" accept=".csv,.xlsx,.xls" required>
             </div>
             <button type="submit" class="owlio-btn" style="background: #1e3a8a; color: white; width: 100%; border: none;">
