@@ -619,14 +619,30 @@ def new_announcement():
 @app.route('/attendance')
 @login_required
 def attendance():
-    if hasattr(current_user, 'role') and current_user.role != 'admin':
+    if not restrict_access(['admin', 'staff']):
         return redirect(url_for('parent_portal'))
-    # Fetch all students and today's attendance records
+        
+    env_id = request.args.get('env_id')
+    environments = Environment.query.all()
+    selected_env = None
+    students = []
+    
+    if env_id:
+        selected_env = Environment.query.get(env_id)
+        if selected_env:
+            # Only pick up students assigned to this specific environment
+            students = selected_env.students
+
     from datetime import date
-    students = Student.query.all()
     today = date.today()
     attendance_records = Attendance.query.filter_by(date=today).all()
-    return render_template('academics/attendance.html', students=students, attendance_records=attendance_records, today=today)
+    
+    return render_template('academics/attendance.html', 
+                           environments=environments,
+                           selected_env=selected_env,
+                           students=students, 
+                           attendance_records=attendance_records, 
+                           today=today)
 @app.route('/dashboard')
 @login_required
 def dashboard():
