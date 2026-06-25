@@ -368,6 +368,9 @@ def check_and_migrate_schema():
         if 'tuition_fee' not in student_columns:
             db.session.execute(text('ALTER TABLE student ADD COLUMN tuition_fee FLOAT DEFAULT 5000'))
             db.session.commit()
+        if 'profile_pic' not in student_columns:
+            db.session.execute(text("ALTER TABLE student ADD COLUMN profile_pic VARCHAR(255) DEFAULT 'default.png'"))
+            db.session.commit()
 
     if inspector.has_table('attendance_intervention'):
         intervention_columns = [column['name'] for column in inspector.get_columns('attendance_intervention')]
@@ -1101,13 +1104,26 @@ def enroll_student():
     if request.method == 'POST':
         # Convert string date from form to Python date object
         dob_obj = datetime.strptime(request.form['dob'], '%Y-%m-%d').date()
+        
+        # Handle profile picture upload
+        profile_pic_filename = 'default.png'
+        if 'profile_pic' in request.files:
+            file = request.files['profile_pic']
+            if file and file.filename != '':
+                filename = secure_filename(file.filename)
+                # Ensure filename is unique by prefixing timestamp
+                unique_filename = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{filename}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+                profile_pic_filename = unique_filename
+                
         new_student = Student(
             first_name=request.form['first_name'],
             last_name=request.form['last_name'],
             dob=dob_obj,
             class_id=request.form['class_id'],
             pickup_auth=request.form['pickup_auth'],
-            tuition_fee=request.form.get('tuition_fee', 5000)
+            tuition_fee=request.form.get('tuition_fee', 5000),
+            profile_pic=profile_pic_filename
         )
         db.session.add(new_student)
         db.session.commit()

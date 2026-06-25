@@ -6,7 +6,7 @@
 </div>
 
 <div class="owlio-card form-card-wide">
-    <form action="{{ url_for('enroll_student') }}" method="POST">
+    <form action="{{ url_for('enroll_student') }}" method="POST" enctype="multipart/form-data">
         <div class="form-grid-2">
             <div class="owlio-form-group">
                 <label class="owlio-label">First Name</label>
@@ -34,6 +34,11 @@
         <div class="owlio-form-group" style="margin-top: 20px;">
             <label class="owlio-label">Authorized Pick-up Persons</label>
             <textarea name="pickup_auth" class="owlio-input" rows="3" placeholder="Names and phone numbers of people allowed to collect the child..."></textarea>
+        </div>
+        
+        <div class="owlio-form-group" style="margin-top: 20px;">
+            <label class="owlio-label">Profile Picture (Optional)</label>
+            <input type="file" name="profile_pic" class="owlio-input" accept="image/*" style="padding: 10px;">
         </div>
         
         <button type="submit" class="owlio-btn" style="margin-top: 30px; width: 100%;">

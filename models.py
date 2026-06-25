@@ -40,6 +40,7 @@ class Student(db.Model):
     tuition_fee = db.Column(db.Float, default=5000.0)
     class_id = db.Column(db.Integer, db.ForeignKey('environment.id'))
     parent_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    profile_pic = db.Column(db.String(255), default='default.png')
     attendance = db.relationship('Attendance', backref='student', lazy=True)
     observations = db.relationship('Observation', backref='student', lazy=True)
     behavior_logs = db.relationship('BehaviorLog', backref='student', lazy=True)
