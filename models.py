@@ -370,3 +370,29 @@ class CoCurricularBooking(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     student = db.relationship('Student', backref='cocurricular_bookings', lazy=True)
+
+# ====================================================================
+# ADVANCED STRUCTURAL FINANCE & INSTALLMENTS ENGINE
+# ====================================================================
+class InvoiceLineItem(db.Model):
+    __tablename__ = 'invoice_line_items'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    term = db.Column(db.String(50), nullable=False) # e.g., "Term 2, 2026"
+    
+    item_name = db.Column(db.String(150), nullable=False) # e.g., "Base Tuition", "Levy", "PTA"
+    amount = db.Column(db.Float, default=0.0, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class InstallmentPlan(db.Model):
+    __tablename__ = 'installment_plans'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    term = db.Column(db.String(50), nullable=False)
+    
+    total_amount_due = db.Column(db.Float, nullable=False)
+    total_amount_paid = db.Column(db.Float, default=0.0)
+    installments_allowed = db.Column(db.Integer, default=3) # e.g., 3-part plan
+    status = db.Column(db.String(50), default='Active') # Active, Fully Paid, Defaulted

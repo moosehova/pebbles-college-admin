@@ -17,7 +17,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution, StaffAttendance, LeaveRequest, CoCurricularBooking
+from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution, StaffAttendance, LeaveRequest, CoCurricularBooking, InvoiceLineItem, InstallmentPlan
 
 # ------------------- APP INITIALIZATION -------------------
 app = Flask(__name__)
@@ -1927,6 +1927,74 @@ def subject_stats():
 
     stats_rows.sort(key=lambda row: row['avg'], reverse=True)
     return render_template('admin/subject_stats.html', subject_rows=stats_rows)
+
+@app.route('/finance/invoice/generate', methods=['POST'])
+@login_required
+def create_structured_invoice():
+    if not restrict_access(['admin', 'accountant']): 
+        return jsonify({"error": "Unauthorized Access"}), 403
+        
+    student_id = request.form.get('student_id')
+    term = request.form.get('term')
+    
+    # Process explicit line-item arrays from financial control panel forms
+    items = [
+        ("Base Tuition Fee", float(request.form.get('base_tuition', 0.0))),
+        ("Infrastructure & Development Levy", float(request.form.get('dev_levy', 0.0))),
+        ("PTA & Community Fund Contribution", float(request.form.get('pta_fund', 0.0))),
+        ("Technology & Digital Lab Access", float(request.form.get('tech_fee', 0.0)))
+    ]
+    
+    running_total = 0.0
+    for name, amount in items:
+        if amount > 0:
+            db.session.add(InvoiceLineItem(student_id=student_id, term=term, item_name=name, amount=amount))
+            running_total += amount
+            
+    # Explicitly verify or initialize an Installment Plan tracking frame container
+    existing_plan = InstallmentPlan.query.filter_by(student_id=student_id, term=term).first()
+    if not existing_plan:
+        db.session.add(InstallmentPlan(student_id=student_id, term=term, total_amount_due=running_total, total_amount_paid=0.0))
+        
+    # Dynamically scale out tuition settings on student master record
+    student = Student.query.get(student_id)
+    if student:
+        student.tuition_fee = running_total
+        
+    db.session.commit()
+    flash("Itemized school fee invoice established successfully.", "success")
+    return redirect(url_for('fee_collection'))
+
+@app.route('/finance/payment/record', methods=['POST'])
+@login_required
+def record_flexible_payment():
+    if not restrict_access(['admin', 'accountant']): 
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    student_id = request.form.get('student_id')
+    amount_paid = float(request.form.get('amount', 0.0))
+    method = request.form.get('method', 'Bank Transfer')
+    term = request.form.get('term')
+    
+    if amount_paid <= 0:
+        flash("Invalid transaction input value amount.", "danger")
+        return redirect(url_for('fee_collection'))
+        
+    # 1. Post transaction directly to master Income Ledger
+    new_payment = Income(student_id=student_id, amount=amount_paid, method=method, date=datetime.utcnow())
+    db.session.add(new_payment)
+    
+    # 2. Update and re-balance corresponding installment loops
+    plan = InstallmentPlan.query.filter_by(student_id=student_id, term=term).first()
+    if plan:
+        plan.total_amount_paid += amount_paid
+        if plan.total_amount_paid >= plan.total_amount_due:
+            plan.status = 'Fully Paid'
+            
+    db.session.commit()
+    flash(f"Payment entry captured cleanly. Receipt synchronized.", "success")
+    return redirect(url_for('fee_collection'))
+
 
 
 # --- FINANCE HUB ---
