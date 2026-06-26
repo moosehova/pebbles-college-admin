@@ -47,14 +47,18 @@
                 <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
                     {% for fee in fees %}
                     <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="px-6 py-4 text-slate-400 tabular-nums">{{ fee.date.strftime('%d %b %Y %H:%M') }}</td>
-                        <td class="px-6 py-4 font-semibold text-slate-900">{{ fee.student.first_name }} {{ fee.student.last_name }}</td>
+                        <td class="px-6 py-4 text-slate-400 tabular-nums">
+                            {{ fee.date.strftime('%d %b %Y %H:%M') if fee.date else 'Unknown Date' }}
+                        </td>
+                        <td class="px-6 py-4 font-semibold text-slate-900">
+                            {{ fee.student.first_name if fee.student else 'Unknown' }} {{ fee.student.last_name if fee.student else 'Student' }}
+                        </td>
                         <td class="px-6 py-4">
                             <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold {% if fee.method == 'Bank Transfer' %}bg-blue-50 text-blue-700 border border-blue-100{% else %}bg-amber-50 text-amber-700 border border-amber-100{% endif %}">
                                 {{ fee.method }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-right font-bold text-slate-900 tabular-nums">K{{ "{:,.2f}".format(fee.amount) }}</td>
+                        <td class="px-6 py-4 text-right font-bold text-slate-900 tabular-nums">K{{ "{:,.2f}".format(fee.amount or 0) }}</td>
                         
                         <td class="px-6 py-4 text-center">
                             <a href="{{ url_for('download_historical_receipt', income_id=fee.id) }}" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1.5 rounded-lg transition-all border border-blue-100">
