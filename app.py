@@ -1022,6 +1022,8 @@ def login():
             flash('Login successful!', 'success')
             if user.role == 'admin':
                 return redirect(url_for('dashboard'))
+            elif user.role == 'student':
+                return redirect(url_for('student_portal'))
             else:
                 return redirect(url_for('parent_portal'))
         else:
@@ -3781,8 +3783,267 @@ def review_leave(leave_id, action):
         flash(f"Leave request marked as {action.lower()}.", "success")
     return redirect(url_for('hr_department'))
 
+
+# ====================================================================
+# STUDENT PORTAL
+# ====================================================================
+
+@app.route('/student/portal')
+@login_required
+def student_portal():
+    # Students log in with a parent account linked to their record
+    # or we fall back gracefully
+    if current_user.role not in ['parent', 'student']:
+        if current_user.role in ['admin', 'staff', 'accountant']:
+            return redirect(url_for('dashboard'))
+    
+    student = Student.query.get(current_user.student_id) if current_user.student_id else None
+    if not student:
+        flash('This account is not linked to a student profile yet.', 'danger')
+        return redirect(url_for('logout'))
+
+    # Academic data
+    all_grades = Grade.query.filter_by(student_id=student.id).order_by(Grade.created_at.desc()).all()
+    avg_grade = round(sum(g.score for g in all_grades) / len(all_grades), 1) if all_grades else 0
+    recent_grades = all_grades[:10]
+
+    # Attendance this month
+    month_start = datetime.utcnow().replace(day=1).date()
+    month_attendance = Attendance.query.filter(
+        Attendance.student_id == student.id,
+        Attendance.date >= month_start
+    ).all()
+    present_count = sum(1 for a in month_attendance if a.status == 'Present')
+    total_days = len(month_attendance)
+    attendance_pct = round((present_count / total_days) * 100) if total_days > 0 else 100
+
+    # Timetable for the student's class
+    timetable = []
+    if student.classroom_id:
+        timetable = ClassSchedule.query.filter_by(level_id=student.classroom_id).order_by(
+            ClassSchedule.day_of_week, ClassSchedule.start_time
+        ).all()
+
+    # Behavior / merits
+    merits = BehaviorLog.query.filter_by(student_id=student.id, type='Merit').order_by(
+        BehaviorLog.timestamp.desc()
+    ).limit(5).all()
+    demerits = BehaviorLog.query.filter_by(student_id=student.id, type='Demerit').order_by(
+        BehaviorLog.timestamp.desc()
+    ).limit(5).all()
+
+    # Upcoming exams
+    upcoming_exams = Examination.query.filter(
+        Examination.date >= datetime.utcnow().date()
+    ).order_by(Examination.date.asc()).limit(5).all()
+
+    # Announcements
+    from models import Announcement
+    announcements = Announcement.query.order_by(Announcement.date_posted.desc()).limit(5).all()
+
+    # Fee balance
+    total_paid = db.session.query(db.func.sum(Income.amount)).filter(
+        Income.student_id == student.id
+    ).scalar() or 0
+    fee_balance = (student.tuition_fee or 0) - total_paid
+
+    return render_template(
+        'student/portal.html',
+        student=student,
+        avg_grade=avg_grade,
+        recent_grades=recent_grades,
+        attendance_pct=attendance_pct,
+        present_count=present_count,
+        total_days=total_days,
+        timetable=timetable,
+        merits=merits,
+        demerits=demerits,
+        upcoming_exams=upcoming_exams,
+        announcements=announcements,
+        fee_balance=fee_balance,
+        total_paid=total_paid
+    )
+
+
+# ====================================================================
+# TIMETABLE BUILDER (ADMIN)
+# ====================================================================
+
+@app.route('/timetable')
+@login_required
+def timetable_builder():
+    if not restrict_access(['admin', 'staff']):
+        return redirect(url_for('parent_portal'))
+    
+    levels = Environment.query.order_by(Environment.name).all()
+    staff = Staff.query.order_by(Staff.first_name).all()
+    
+    # Get all schedules, group by level
+    all_schedules = ClassSchedule.query.order_by(
+        ClassSchedule.level_id, ClassSchedule.day_of_week, ClassSchedule.start_time
+    ).all()
+    
+    # Build a dict: level_id -> {day -> [slots]}
+    days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    timetable_map = {}
+    for s in all_schedules:
+        lid = s.level_id
+        if lid not in timetable_map:
+            timetable_map[lid] = {d: [] for d in days_order}
+        if s.day_of_week in timetable_map[lid]:
+            timetable_map[lid][s.day_of_week].append(s)
+    
+    return render_template(
+        'admin/timetable.html',
+        levels=levels,
+        staff=staff,
+        timetable_map=timetable_map,
+        days_order=days_order,
+        all_schedules=all_schedules
+    )
+
+@app.route('/timetable/slot/add', methods=['POST'])
+@login_required
+def add_timetable_slot():
+    if not restrict_access(['admin']): return jsonify({"error": "Unauthorized"}), 403
+    try:
+        from datetime import time as dt_time
+        def parse_time(t_str):
+            h, m = t_str.split(':')
+            return dt_time(int(h), int(m))
+        
+        slot = ClassSchedule(
+            level_id=int(request.form.get('level_id')),
+            teacher_id=int(request.form.get('teacher_id')),
+            subject=request.form.get('subject', '').strip(),
+            day_of_week=request.form.get('day_of_week'),
+            start_time=parse_time(request.form.get('start_time')),
+            end_time=parse_time(request.form.get('end_time'))
+        )
+        db.session.add(slot)
+        db.session.commit()
+        flash(f"Timetable slot added: {slot.subject} on {slot.day_of_week}.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Could not add slot. Check inputs and try again.", "danger")
+    return redirect(url_for('timetable_builder'))
+
+@app.route('/timetable/slot/delete/<int:slot_id>', methods=['POST'])
+@login_required
+def delete_timetable_slot(slot_id):
+    if not restrict_access(['admin']): return jsonify({"error": "Unauthorized"}), 403
+    slot = ClassSchedule.query.get_or_404(slot_id)
+    db.session.delete(slot)
+    db.session.commit()
+    flash("Timetable slot removed.", "success")
+    return redirect(url_for('timetable_builder'))
+
+
+# ====================================================================
+# BULK SMS & COMMUNICATION HUB
+# ====================================================================
+
+@app.route('/communications')
+@login_required
+def communications_hub():
+    if not restrict_access(['admin', 'staff']):
+        return redirect(url_for('parent_portal'))
+    
+    students = Student.query.order_by(Student.first_name).all()
+    classes = Environment.query.order_by(Environment.name).all()
+    
+    # Recent SMS log (use BehaviorLog type='SMS' as a simple log store)
+    # We'll track via Message model - sender_id = current user, receiver_id = null for broadcasts
+    from models import Announcement
+    recent_broadcasts = Announcement.query.order_by(Announcement.date_posted.desc()).limit(10).all()
+    
+    return render_template(
+        'admin/communications.html',
+        students=students,
+        classes=classes,
+        recent_broadcasts=recent_broadcasts
+    )
+
+@app.route('/communications/sms/bulk', methods=['POST'])
+@login_required
+def send_bulk_sms():
+    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    
+    target = request.form.get('target')  # 'all', 'class', 'individual'
+    message_text = request.form.get('message_text', '').strip()
+    class_id = request.form.get('class_id')
+    student_ids = request.form.getlist('student_ids')
+
+    if not message_text:
+        flash("Message cannot be empty.", "danger")
+        return redirect(url_for('communications_hub'))
+    
+    # Build recipient list
+    recipients = []
+    if target == 'all':
+        recipients = Student.query.all()
+    elif target == 'class' and class_id:
+        recipients = Student.query.filter_by(classroom_id=int(class_id)).all()
+    elif target == 'individual' and student_ids:
+        recipients = Student.query.filter(Student.id.in_([int(i) for i in student_ids])).all()
+
+    sent_count = 0
+    fail_count = 0
+    for student in recipients:
+        # Try parent phone, then emergency contact
+        phone = None
+        if student.parent_phone:
+            phone = student.parent_phone
+        
+        if phone:
+            result = send_direct_sms(phone, f"Pebbles College: {message_text}")
+            if result:
+                sent_count += 1
+            else:
+                fail_count += 1
+        else:
+            fail_count += 1
+    
+    flash(f"SMS Broadcast complete: {sent_count} sent, {fail_count} failed (no phone number).", 
+          "success" if sent_count > 0 else "danger")
+    return redirect(url_for('communications_hub'))
+
+@app.route('/communications/sms/attendance', methods=['POST'])
+@login_required
+def send_attendance_sms():
+    """Auto-send SMS to parents of absent students for a given date."""
+    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    
+    date_str = request.form.get('attendance_date', datetime.utcnow().strftime('%Y-%m-%d'))
+    try:
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        target_date = datetime.utcnow().date()
+    
+    absent_records = Attendance.query.filter_by(date=target_date, status='Absent').all()
+    sent_count = 0
+    for record in absent_records:
+        student = record.student
+        if student and student.parent_phone:
+            msg = (f"Dear Parent, {student.first_name} {student.last_name} "
+                   f"was absent from school today ({target_date.strftime('%d %b %Y')}). "
+                   f"Please contact the school office if you have not notified us. "
+                   f"- Pebbles College")
+            result = send_direct_sms(student.parent_phone, msg)
+            if result:
+                sent_count += 1
+    
+    flash(f"Attendance SMS sent to {sent_count} parent(s) for {target_date.strftime('%d %b %Y')}.", "success")
+    return redirect(url_for('communications_hub'))
+
+
+# ====================================================================
+# STUDENT PORTAL LOGIN ROUTING - update login to handle 'student' role
+# ====================================================================
+
 # ------------------- RUN APP -------------------
 if __name__ == '__main__':
     with app.app_context():
         ensure_database_schema()
     app.run(debug=True)
+

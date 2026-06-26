@@ -1,0 +1,176 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div>
+        <h2 class="page-title"><i class="fas fa-calendar-week"></i> Timetable Builder</h2>
+        <p class="page-subtitle">Manage weekly class schedules for all levels. Add, view and remove lesson slots.</p>
+    </div>
+    <button onclick="document.getElementById('addSlotModal').style.display='flex'" class="owlio-btn" style="border: none;">
+        <i class="fas fa-plus"></i> Add Lesson Slot
+    </button>
+</div>
+
+<!-- Level Tabs -->
+<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px;">
+    {% for level in levels %}
+    <button onclick="showLevel('level-{{ level.id }}')" id="tab-{{ level.id }}"
+        class="level-tab"
+        style="padding: 8px 16px; border-radius: 8px; border: 2px solid #e2e8f0; background: white; cursor: pointer; font-weight: 700; font-size: 0.82rem; color: #475569; transition: all 0.2s;">
+        {{ level.name }}
+        {% if level.id in timetable_map %}
+        <span style="background: #1e3a8a; color: white; border-radius: 999px; padding: 2px 6px; font-size: 0.65rem; margin-left: 4px;">
+            {{ timetable_map[level.id].values()|sum(attribute='__len__') if timetable_map[level.id] else 0 }}
+        </span>
+        {% endif %}
+    </button>
+    {% endfor %}
+</div>
+
+<!-- Timetable Grids per Level -->
+{% for level in levels %}
+<div id="level-{{ level.id }}" class="level-view" style="display: none;">
+    <div class="owlio-card" style="padding: 0; overflow: hidden; margin-bottom: 20px;">
+        <div class="owlio-header" style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="owlio-title">{{ level.name }} — Weekly Schedule</h3>
+            <span style="font-size: 0.75rem; color: #94a3b8;">{{ level.students|length if level.students else 0 }} students enrolled</span>
+        </div>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
+                <thead>
+                    <tr style="background: #1e3a8a;">
+                        {% for day in days_order %}
+                        <th style="padding: 12px 16px; color: white; font-size: 0.75rem; text-transform: uppercase; text-align: center; border-right: 1px solid rgba(255,255,255,0.1);">
+                            {{ day }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="vertical-align: top;">
+                        {% for day in days_order %}
+                        <td style="padding: 12px; border-right: 1px solid #f1f5f9; min-width: 130px; min-height: 80px;">
+                            {% if level.id in timetable_map and timetable_map[level.id][day] %}
+                                {% for slot in timetable_map[level.id][day] | sort(attribute='start_time') %}
+                                <div style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border-left: 3px solid #3b82f6; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; position: relative;">
+                                    <div style="font-weight: 800; color: #1e40af; font-size: 0.82rem;">{{ slot.subject }}</div>
+                                    <div style="font-size: 0.68rem; color: #475569; margin-top: 2px;">
+                                        {{ slot.start_time.strftime('%H:%M') }} – {{ slot.end_time.strftime('%H:%M') }}
+                                    </div>
+                                    {% if slot.teacher %}
+                                    <div style="font-size: 0.65rem; color: #64748b; margin-top: 2px;">
+                                        <i class="fas fa-user-tie"></i> {{ slot.teacher.first_name }} {{ slot.teacher.last_name }}
+                                    </div>
+                                    {% endif %}
+                                    <form action="{{ url_for('delete_timetable_slot', slot_id=slot.id) }}" method="POST" style="display: inline; position: absolute; top: 4px; right: 4px;">
+                                        <button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.65rem; padding: 2px 4px;" title="Remove slot">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div style="color: #cbd5e1; font-size: 0.72rem; text-align: center; padding: 20px 0;">Free</div>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% if not levels %}
+<div class="owlio-card" style="text-align: center; padding: 60px;">
+    <i class="fas fa-school" style="font-size: 3rem; color: #e2e8f0;"></i>
+    <p style="color: #94a3b8; margin-top: 16px;">No classes found. Create levels first in the Academics section.</p>
+</div>
+{% endif %}
+
+<!-- Add Slot Modal -->
+<div id="addSlotModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: white; border-radius: 16px; padding: 28px; width: 100%; max-width: 520px; box-shadow: 0 25px 50px rgba(0,0,0,0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3 style="margin: 0; color: #1e293b; font-weight: 800;"><i class="fas fa-plus-circle" style="color: #1e3a8a;"></i> New Lesson Slot</h3>
+            <button onclick="document.getElementById('addSlotModal').style.display='none'" style="background: none; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer;">&times;</button>
+        </div>
+        <form action="{{ url_for('add_timetable_slot') }}" method="POST">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label class="owlio-label">Class / Level *</label>
+                    <select name="level_id" class="owlio-select" required>
+                        <option value="">Select level...</option>
+                        {% for level in levels %}
+                        <option value="{{ level.id }}">{{ level.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="owlio-label">Teacher *</label>
+                    <select name="teacher_id" class="owlio-select" required>
+                        <option value="">Select teacher...</option>
+                        {% for s in staff %}
+                        <option value="{{ s.id }}">{{ s.first_name }} {{ s.last_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label class="owlio-label">Subject *</label>
+                <input type="text" name="subject" class="owlio-input" placeholder="e.g. Mathematics, English, Science..." required>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label class="owlio-label">Day of Week *</label>
+                <select name="day_of_week" class="owlio-select" required>
+                    <option value="">Select day...</option>
+                    {% for day in days_order %}
+                    <option value="{{ day }}">{{ day }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                <div>
+                    <label class="owlio-label">Start Time *</label>
+                    <input type="time" name="start_time" class="owlio-input" required value="07:30">
+                </div>
+                <div>
+                    <label class="owlio-label">End Time *</label>
+                    <input type="time" name="end_time" class="owlio-input" required value="08:30">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="owlio-btn" style="flex: 1; border: none;"><i class="fas fa-save"></i> Save Slot</button>
+                <button type="button" onclick="document.getElementById('addSlotModal').style.display='none'" class="owlio-btn" style="background: #f1f5f9; color: #475569; border: none;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showLevel(id) {
+    document.querySelectorAll('.level-view').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.level-tab').forEach(t => {
+        t.style.background = 'white';
+        t.style.color = '#475569';
+        t.style.borderColor = '#e2e8f0';
+    });
+    document.getElementById(id).style.display = 'block';
+    const tabId = 'tab-' + id.replace('level-', '');
+    const tab = document.getElementById(tabId);
+    if (tab) {
+        tab.style.background = '#1e3a8a';
+        tab.style.color = 'white';
+        tab.style.borderColor = '#1e3a8a';
+    }
+}
+// Show first level by default
+document.addEventListener('DOMContentLoaded', function() {
+    const firstTab = document.querySelector('.level-tab');
+    if (firstTab) {
+        const firstId = firstTab.id.replace('tab-', 'level-');
+        showLevel(firstId);
+    }
+});
+</script>
+{% endblock %}

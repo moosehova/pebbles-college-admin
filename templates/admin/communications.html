@@ -1,0 +1,160 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div>
+        <h2 class="page-title"><i class="fas fa-broadcast-tower"></i> Communications Hub</h2>
+        <p class="page-subtitle">Send bulk SMS and WhatsApp messages to parents and students via Twilio.</p>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px;">
+    <div class="owlio-card" style="text-align: center; padding: 20px; border-top: 4px solid #1e3a8a; margin-bottom: 0;">
+        <div style="font-size: 2rem; font-weight: 900; color: #1e3a8a;">{{ students|length }}</div>
+        <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Total Parents</div>
+    </div>
+    <div class="owlio-card" style="text-align: center; padding: 20px; border-top: 4px solid #10b981; margin-bottom: 0;">
+        <div style="font-size: 2rem; font-weight: 900; color: #047857;">{{ students|selectattr('parent_phone')|list|length }}</div>
+        <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700;">With Phone Number</div>
+    </div>
+    <div class="owlio-card" style="text-align: center; padding: 20px; border-top: 4px solid #f59e0b; margin-bottom: 0;">
+        <div style="font-size: 2rem; font-weight: 900; color: #d97706;">{{ classes|length }}</div>
+        <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Classes</div>
+    </div>
+    <div class="owlio-card" style="text-align: center; padding: 20px; border-top: 4px solid #8b5cf6; margin-bottom: 0;">
+        <div style="font-size: 2rem; font-weight: 900; color: #7c3aed;">{{ recent_broadcasts|length }}</div>
+        <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Recent Notices</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+
+    <!-- Bulk SMS Composer -->
+    <div>
+        <div class="owlio-card" style="margin-bottom: 24px; border-top: 4px solid #10b981;">
+            <h3 style="font-weight: 800; color: #047857; margin-bottom: 20px; font-size: 0.95rem;">
+                <i class="fas fa-sms"></i> Broadcast SMS Message
+            </h3>
+            <form action="{{ url_for('send_bulk_sms') }}" method="POST">
+                <div style="margin-bottom: 16px;">
+                    <label class="owlio-label">Send To</label>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px; padding: 8px 14px; font-size: 0.82rem; font-weight: 700; color: #047857;">
+                            <input type="radio" name="target" value="all" checked style="accent-color: #10b981;"> All Parents
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; font-size: 0.82rem; font-weight: 700; color: #475569;" id="label-class">
+                            <input type="radio" name="target" value="class" onchange="toggleTargetOptions()"> By Class
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; font-size: 0.82rem; font-weight: 700; color: #475569;" id="label-individual">
+                            <input type="radio" name="target" value="individual" onchange="toggleTargetOptions()"> Individual
+                        </label>
+                    </div>
+                </div>
+
+                <div id="class-selector" style="display: none; margin-bottom: 16px;">
+                    <label class="owlio-label">Select Class</label>
+                    <select name="class_id" class="owlio-select">
+                        <option value="">All Classes</option>
+                        {% for cls in classes %}
+                        <option value="{{ cls.id }}">{{ cls.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="individual-selector" style="display: none; margin-bottom: 16px;">
+                    <label class="owlio-label">Select Students</label>
+                    <div style="max-height: 180px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                        {% for s in students %}
+                        <label style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.82rem; cursor: pointer;">
+                            <input type="checkbox" name="student_ids" value="{{ s.id }}" style="accent-color: #1e3a8a;">
+                            {{ s.first_name }} {{ s.last_name }}
+                            {% if s.parent_phone %}<span style="color: #10b981; font-size: 0.7rem;">✓ {{ s.parent_phone }}</span>{% else %}<span style="color: #ef4444; font-size: 0.7rem;">No phone</span>{% endif %}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label class="owlio-label">Message Text *</label>
+                    <textarea name="message_text" class="owlio-input" rows="4" placeholder="Type your message here... (e.g. Parent Meeting on Friday 4th July at 14:00)" required style="resize: vertical;"></textarea>
+                    <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">Your message will be prefixed with "Pebbles College:" automatically.</div>
+                </div>
+
+                <button type="submit" class="owlio-btn" style="width: 100%; border: none; background: #10b981; padding: 12px;">
+                    <i class="fas fa-paper-plane"></i> Send SMS to All Selected Parents
+                </button>
+            </form>
+        </div>
+
+        <!-- Attendance SMS -->
+        <div class="owlio-card" style="border-top: 4px solid #ef4444; background: #fff5f5;">
+            <h3 style="font-weight: 800; color: #dc2626; margin-bottom: 8px; font-size: 0.95rem;">
+                <i class="fas fa-user-slash"></i> Absence Alert SMS
+            </h3>
+            <p style="color: #991b1b; font-size: 0.82rem; margin-bottom: 16px;">
+                Automatically SMS all parents whose child was marked <strong>Absent</strong> on a selected date.
+            </p>
+            <form action="{{ url_for('send_attendance_sms') }}" method="POST">
+                <div style="display: flex; gap: 10px; align-items: flex-end;">
+                    <div style="flex: 1;">
+                        <label class="owlio-label">Attendance Date</label>
+                        <input type="date" name="attendance_date" class="owlio-input" value="{{ '' }}" required>
+                    </div>
+                    <button type="submit" class="owlio-btn" style="border: none; background: #ef4444; white-space: nowrap; flex-shrink: 0;">
+                        <i class="fas fa-bell"></i> Send Absence Alerts
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recent Broadcasts -->
+    <div>
+        <div class="owlio-card" style="padding: 0; overflow: hidden;">
+            <div class="owlio-header" style="padding: 20px 24px;">
+                <h3 class="owlio-title"><i class="fas fa-history"></i> Recent School Notices</h3>
+            </div>
+            {% for post in recent_broadcasts %}
+            <div style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9;">
+                <div style="display: flex; justify-content: space-between; align-items: start; gap: 10px; margin-bottom: 6px;">
+                    <div style="font-weight: 800; color: #1e293b; font-size: 0.9rem;">{{ post.title }}</div>
+                    <span style="font-size: 0.68rem; color: #94a3b8; white-space: nowrap;">{{ post.date_posted.strftime('%d %b') }}</span>
+                </div>
+                <div style="font-size: 0.82rem; color: #475569; line-height: 1.5;">{{ post.content[:150] }}{% if post.content|length > 150 %}...{% endif %}</div>
+            </div>
+            {% else %}
+            <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                <i class="fas fa-broadcast-tower" style="font-size: 2rem;"></i>
+                <p style="margin-top: 10px; font-size: 0.9rem;">No broadcasts sent yet.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Quick Tips -->
+        <div class="owlio-card" style="margin-top: 20px; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-left: 4px solid #0284c7;">
+            <h4 style="color: #0369a1; font-size: 0.85rem; margin-bottom: 12px; font-weight: 800;"><i class="fas fa-lightbulb"></i> SMS Tips</h4>
+            <ul style="font-size: 0.8rem; color: #0369a1; padding-left: 16px; margin: 0;">
+                <li style="margin-bottom: 6px;">Keep messages under 160 characters to send as a single SMS</li>
+                <li style="margin-bottom: 6px;">Phone numbers must include country code (e.g., +260 for Zambia)</li>
+                <li style="margin-bottom: 6px;">SMS requires Twilio credentials set in your server environment variables</li>
+                <li>Use "Absence Alert" for automatic daily absence notifications</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleTargetOptions() {
+    const target = document.querySelector('input[name="target"]:checked').value;
+    document.getElementById('class-selector').style.display = target === 'class' ? 'block' : 'none';
+    document.getElementById('individual-selector').style.display = target === 'individual' ? 'block' : 'none';
+}
+// Set today's date as default for attendance date input
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.querySelector('input[name="attendance_date"]');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}
