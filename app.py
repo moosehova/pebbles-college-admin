@@ -385,6 +385,9 @@ def check_and_migrate_schema():
         if 'staff_id' not in user_columns:
             db.session.execute(text('ALTER TABLE "user" ADD COLUMN staff_id INTEGER'))
             db.session.commit()
+        if 'phone_number' not in user_columns:
+            db.session.execute(text('ALTER TABLE "user" ADD COLUMN phone_number VARCHAR(50)'))
+            db.session.commit()
 
     if inspector.has_table('inventory'):
         inventory_columns = [column['name'] for column in inspector.get_columns('inventory')]
