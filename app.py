@@ -1478,6 +1478,8 @@ def delete_student(student_id):
     AttendanceIntervention.query.filter_by(student_id=student_id).delete()
     CoCurricularBooking.query.filter_by(student_id=student_id).delete()
     Income.query.filter_by(student_id=student_id).delete()
+    InvoiceLineItem.query.filter_by(student_id=student_id).delete()
+    InstallmentPlan.query.filter_by(student_id=student_id).delete()
     
     # Check if there is an associated parent account to also consider
     # If the user is linked via student_id (the parent login)
