@@ -1,6 +1,7 @@
 # ------------------- IMPORTS -------------------
 import os
-from io import BytesIO
+import csv
+from io import StringIO, BytesIO
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -1974,7 +1975,7 @@ def create_structured_invoice():
 @login_required
 def record_flexible_payment():
     if not restrict_access(['admin', 'accountant']): 
-        return jsonify({"error": "Unauthorized"}), 403
+        return jsonify({"error": "Unauthorized Access"}), 403
         
     student_id = request.form.get('student_id')
     amount_paid = float(request.form.get('amount', 0.0))
@@ -1985,20 +1986,95 @@ def record_flexible_payment():
         flash("Invalid transaction input value amount.", "danger")
         return redirect(url_for('fee_collection'))
         
-    # 1. Post transaction directly to master Income Ledger
-    new_payment = Income(student_id=student_id, amount=amount_paid, method=method, date=datetime.utcnow())
+    # 1. Write the transaction straight to the primary Income table
+    new_payment = Income(
+        student_id=student_id, 
+        amount=amount_paid, 
+        method=method, 
+        date=datetime.utcnow()
+    )
     db.session.add(new_payment)
-    
-    # 2. Update and re-balance corresponding installment loops
+    db.session.flush()  # Obtains the live primary key ID for our receipt tracking
+
+    # 2. Automatically re-balance the parent's installment plan
     plan = InstallmentPlan.query.filter_by(student_id=student_id, term=term).first()
+    remaining_balance = 0.0
     if plan:
         plan.total_amount_paid += amount_paid
+        remaining_balance = max(0.0, plan.total_amount_due - plan.total_amount_paid)
         if plan.total_amount_paid >= plan.total_amount_due:
             plan.status = 'Fully Paid'
-            
+    
+    student = Student.query.get(student_id)
     db.session.commit()
-    flash(f"Payment entry captured cleanly. Receipt synchronized.", "success")
-    return redirect(url_for('fee_collection'))
+
+    # ==========================================
+    # 3. DYNAMIC LIVE COMPLIANT PDF GENERATION
+    # ==========================================
+    receipt_stream = BytesIO()
+    doc = SimpleDocTemplate(
+        receipt_stream,
+        pagesize=A4,
+        rightMargin=2*cm, leftMargin=2*cm,
+        topMargin=2*cm, bottomMargin=2*cm
+    )
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'ReceiptTitle', parent=styles['Title'],
+        fontName='Helvetica-Bold', fontSize=22,
+        textColor=colors.HexColor('#1e3a8a'), spaceAfter=4
+    )
+    meta_style = ParagraphStyle(
+        'ReceiptMeta', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=10,
+        textColor=colors.HexColor('#475569'), spaceAfter=4
+    )
+    
+    story = [
+        Paragraph("PEBBLES INTERNATIONAL SCHOOL", title_style),
+        Paragraph("Official Financial Payment Receipt", ParagraphStyle('Sub', parent=title_style, fontSize=12, textColor=colors.HexColor('#475569'), spaceAfter=15)),
+        Spacer(1, 0.5*cm),
+        Paragraph(f"<b>Receipt Number:</b> REC-{new_payment.id:06d}", meta_style),
+        Paragraph(f"<b>Date Processed:</b> {new_payment.date.strftime('%d %B %Y %H:%M UTC')}", meta_style),
+        Paragraph(f"<b>Payment Channel:</b> {method}", meta_style),
+        Spacer(1, 0.8*cm),
+    ]
+    
+    # Structural breakdown data matrix table mapping
+    ledger_data = [
+        [Paragraph('<b>Account Description</b>', styles['Normal']), Paragraph('<b>Allocation Details</b>', styles['Normal'])],
+        ['Student Name', f"{student.first_name} {student.last_name}"],
+        ['Assigned Level', f"{student.classroom.name if student.classroom else 'General Operations'}"],
+        ['Target Academic Term', term],
+        ['Amount Received', f"K {amount_paid:,.2f}"],
+        ['Remaining Termly Balance', f"K {remaining_balance:,.2f}"],
+    ]
+    
+    receipt_table = Table(ledger_data, colWidths=[6*cm, 11*cm])
+    receipt_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f8fafc')),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#1e3a8a')),
+    ]))
+    
+    story.append(receipt_table)
+    story.append(Spacer(1, 1.5*cm))
+    story.append(Paragraph("<i>Thank you for your payment. This is a system-generated receipt.</i>", styles['Normal']))
+    
+    doc.build(story)
+    receipt_stream.seek(0)
+    
+    # Instantly trigger a client browser file transmission stream
+    return send_file(
+        receipt_stream,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f"Receipt_REC_{new_payment.id}.pdf"
+    )
 
 
 
