@@ -566,16 +566,37 @@ def parent_portal():
     else:
         proud_moment = 'Steady Progress: Daily attendance and encouragement are building long-term success.'
 
-    # Fetch announcements and other info for parents
-    from models import Announcement
-    announcements = Announcement.query.order_by(Announcement.date_posted.desc()).all()
+    from models import Announcement, Message, Book, RouteAssignment, Vehicle, TransportRoute
+    announcements = Announcement.query.order_by(Announcement.date_posted.desc()).limit(5).all()
+
+    # Chart Data Preparation (last 5 grades)
+    chart_grades = recent_grades[:5][::-1] if recent_grades else []
+    chart_labels = [g.subject or "Exam" for g in chart_grades]
+    chart_data = [g.score for g in chart_grades]
+
+    # Communication Hub: Recent Messages
+    messages = Message.query.filter(
+        (Message.receiver_id == current_user.id) | (Message.sender_id == current_user.id)
+    ).order_by(Message.timestamp.desc()).limit(10).all()
+
+    # E-Library Catalog: Top available books
+    books = Book.query.filter(Book.available_copies > 0).limit(6).all()
+
+    # Transport & Logistics
+    route_assignment = RouteAssignment.query.filter_by(student_id=student.id).first()
+
     return render_template(
         'parent/portal.html',
         announcements=announcements,
         student=student,
         proud_moment=proud_moment,
         weekly_merits=weekly_merits,
-        avg_grade=avg_grade
+        avg_grade=avg_grade,
+        chart_labels=chart_labels,
+        chart_data=chart_data,
+        messages=messages,
+        books=books,
+        route_assignment=route_assignment
     )
 @app.route('/inbox')
 @login_required

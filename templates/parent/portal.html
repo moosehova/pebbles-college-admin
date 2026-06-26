@@ -39,6 +39,12 @@
                 <div style="font-weight: 800; font-size: 1.2rem; color: #1e3a8a;">{{ avg_grade }}%</div>
             </div>
         </div>
+        
+        <div style="margin-top: 20px; background: #ffffff; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <h5 style="color: #475569; font-size: 0.8rem; margin-bottom: 10px;">Recent Performance</h5>
+            <canvas id="academicChart" style="width: 100%; max-height: 200px;"></canvas>
+        </div>
+
         <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
             <a href="{{ url_for('download_report_card', student_id=student.id) }}" class="owlio-btn" style="text-decoration: none; border: none;">
                 <i class="fas fa-file-pdf"></i> Download Term Report Card PDF
@@ -50,16 +56,34 @@
     </div>
 </div>
 
-<div class="owlio-card" style="margin-top: 20px; border-left: 5px solid #3b82f6; background: #f0f9ff; max-width: 900px; margin-left: auto; margin-right: auto;">
-    <h4 style="color: #1e40af; font-size: 0.9rem; margin-bottom: 12px;">
-        <i class="far fa-comment-dots"></i> Message School Office
-    </h4>
-    <form action="{{ url_for('send_message') }}" method="POST">
-        <textarea name="message_content" class="owlio-input" rows="2" placeholder="Ask about fees, events, or progress..." style="background: white; font-size: 0.85rem; border: 1px solid #bfdbfe;"></textarea>
-        <button type="submit" class="owlio-btn" style="width: 100%; margin-top: 10px; padding: 8px; font-size: 0.75rem; background: #1e40af; border: none;">
-            Send Message
-        </button>
-    </form>
+<div class="owlio-card" style="margin-top: 20px; border-left: 5px solid #3b82f6; background: #f0f9ff; max-width: 900px; margin-left: auto; margin-right: auto; padding: 0; overflow: hidden;">
+    <div style="padding: 20px;">
+        <h4 style="color: #1e40af; font-size: 0.9rem; margin-bottom: 12px; display: flex; justify-content: space-between;">
+            <span><i class="far fa-comment-dots"></i> Communications Inbox</span>
+            <a href="{{ url_for('inbox') }}" style="color: #3b82f6; text-decoration: none; font-size: 0.8rem;">View All</a>
+        </h4>
+        
+        <div style="max-height: 200px; overflow-y: auto; padding-right: 10px; margin-bottom: 15px;">
+            {% for msg in messages %}
+            <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #bfdbfe; font-size: 0.85rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <strong style="color: #1e3a8a;">{{ msg.sender.username if msg.sender else 'System' }}</strong>
+                    <small style="color: #94a3b8;">{{ msg.timestamp.strftime('%b %d, %H:%M') }}</small>
+                </div>
+                <div style="color: #475569;">{{ msg.content }}</div>
+            </div>
+            {% else %}
+            <div style="text-align: center; color: #94a3b8; padding: 10px; font-size: 0.85rem;">No messages in inbox.</div>
+            {% endfor %}
+        </div>
+
+        <form action="{{ url_for('send_message') }}" method="POST">
+            <textarea name="message_content" class="owlio-input" rows="2" placeholder="Ask about fees, events, or progress..." style="background: white; font-size: 0.85rem; border: 1px solid #bfdbfe;"></textarea>
+            <button type="submit" class="owlio-btn" style="width: 100%; margin-top: 10px; padding: 8px; font-size: 0.75rem; background: #1e40af; border: none;">
+                Reply / Send New Message
+            </button>
+        </form>
+    </div>
 </div>
 
 <div class="owlio-card" style="margin-top: 20px; border-left: 5px solid #8b5cf6; background: #f5f3ff; max-width: 900px; margin-left: auto; margin-right: auto;">
@@ -97,6 +121,28 @@
     {% endif %}
 </div>
 
+<div class="owlio-card" style="margin-top: 20px; border-left: 5px solid #f97316; background: #fff7ed; max-width: 900px; margin-left: auto; margin-right: auto;">
+    <h4 style="color: #c2410c; font-size: 0.9rem; margin-bottom: 12px;">
+        <i class="fas fa-bus"></i> Logistics & Transport Assignment
+    </h4>
+    {% if route_assignment %}
+    <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #fdba74; display: flex; flex-wrap: wrap; gap: 20px;">
+        <div style="flex: 1; min-width: 150px;">
+            <div style="font-size: 0.75rem; color: #9a3412; text-transform: uppercase;">Assigned Route</div>
+            <div style="font-weight: 800; color: #7c2d12;">{{ route_assignment.route.name }}</div>
+            <div style="font-size: 0.85rem; color: #ea580c; margin-top: 4px;"><i class="fas fa-map-marker-alt"></i> Pickup: {{ route_assignment.pickup_point or 'Main Stop' }}</div>
+        </div>
+        <div style="flex: 1; min-width: 150px;">
+            <div style="font-size: 0.75rem; color: #9a3412; text-transform: uppercase;">Vehicle Info</div>
+            <div style="font-weight: 800; color: #7c2d12;">Bus {{ route_assignment.route.vehicle.plate_number }}</div>
+            <div style="font-size: 0.85rem; color: #ea580c; margin-top: 4px;"><i class="fas fa-id-card"></i> Driver: {{ route_assignment.route.driver_name or 'Standard Duty' }}</div>
+        </div>
+    </div>
+    {% else %}
+    <p style="font-size: 0.85rem; color: #9a3412; margin: 0;">Student is not currently assigned to a school transport route. Contact administration to register.</p>
+    {% endif %}
+</div>
+
 <div class="owlio-card" style="margin-top: 30px; border-top: 4px solid #fbbf24;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h3 style="margin: 0; color: #1e3a8a;"><i class="fas fa-newspaper"></i> School News Feed</h3>
@@ -118,4 +164,72 @@
     </div>
     {% endfor %}
 </div>
+
+<div class="owlio-card" style="margin-top: 30px; border-top: 4px solid #10b981; max-width: 900px; margin-left: auto; margin-right: auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0; color: #047857;"><i class="fas fa-book-open"></i> E-Library Discovery</h3>
+        <span style="font-size: 0.75rem; color: #059669; text-transform: uppercase; background: #d1fae5; padding: 4px 8px; border-radius: 4px;">Available Now</span>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+        {% for book in books %}
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; display: flex; align-items: center; gap: 15px;">
+            <div style="width: 40px; height: 50px; background: #0f766e; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white;">
+                <i class="fas fa-book"></i>
+            </div>
+            <div>
+                <div style="font-weight: 800; color: #1e293b; font-size: 0.9rem;">{{ book.title }}</div>
+                <div style="color: #64748b; font-size: 0.75rem;">By {{ book.author }} • {{ book.category }}</div>
+            </div>
+        </div>
+        {% else %}
+        <p style="color: #94a3b8; font-size: 0.85rem;">No books currently available in catalog.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('academicChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_labels | tojson }},
+                datasets: [{
+                    label: 'Exam Scores (%)',
+                    data: {{ chart_data | tojson }},
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#1e40af',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: '#f1f5f9' },
+                        ticks: { font: { size: 10 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
