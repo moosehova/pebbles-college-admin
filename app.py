@@ -17,7 +17,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution, StaffAttendance, LeaveRequest
+from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution, StaffAttendance, LeaveRequest, CoCurricularBooking
 
 # ------------------- APP INITIALIZATION -------------------
 app = Flask(__name__)
@@ -612,6 +612,40 @@ def admin_reply_message():
     
     flash('Reply sent successfully to parent.', 'success')
     return redirect(url_for('inbox'))
+
+@app.route('/parent/book-activity', methods=['POST'])
+@login_required
+def book_activity():
+    if current_user.role != 'parent':
+        return redirect(url_for('dashboard'))
+    
+    student_id = request.form.get('student_id')
+    activity = request.form.get('activity')
+    
+    if student_id and activity:
+        booking = CoCurricularBooking(
+            student_id=student_id,
+            activity=activity,
+            status='Pending'
+        )
+        db.session.add(booking)
+        
+        # Optionally send a message to admin
+        admin = User.query.filter_by(role='admin').first()
+        if admin:
+            student = Student.query.get(student_id)
+            msg_content = f"New Co-curricular Booking Request: {activity} for {student.first_name} {student.last_name}."
+            new_msg = Message(
+                sender_id=current_user.id,
+                receiver_id=admin.id,
+                content=msg_content
+            )
+            db.session.add(new_msg)
+            
+        db.session.commit()
+        flash(f'Successfully requested booking for {activity}.', 'success')
+        
+    return redirect(url_for('dashboard'))
 
 @app.route('/parent/send-message', methods=['POST'])
 @login_required

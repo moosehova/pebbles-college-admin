@@ -17,9 +17,9 @@
             <input type="text" name="q" value="{{ query }}" class="owlio-input" placeholder="Type first or last name...">
         </div>
         <div>
-            <label class="owlio-label">Environment</label>
+            <label class="owlio-label">Level</label>
             <select name="env_id" class="owlio-select">
-                <option value="">All Environments</option>
+                <option value="">All Levels</option>
                 {% for env in environments %}
                 <option value="{{ env.id }}" {% if selected_env_id == env.id|string %}selected{% endif %}>{{ env.name }}</option>
                 {% endfor %}
@@ -39,7 +39,7 @@
         <thead style="background: #f8fafc;">
             <tr>
                 <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Student</th>
-                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Environment</th>
+                <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Level</th>
                 <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Status</th>
                 <th style="padding: 14px 24px; text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Fee Balance</th>
                 <th style="padding: 14px 24px; text-align: right; font-size: 0.72rem; text-transform: uppercase; color: #64748b;">Action</th>

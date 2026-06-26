@@ -72,7 +72,7 @@
         <div>
             <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.8px;">Pebbles Yellow Student 360</div>
             <h2 class="page-title" style="margin-top: 10px;">{{ student.first_name }} {{ student.last_name }}</h2>
-            <p class="page-subtitle">Environment: {{ student.classroom.name if student.classroom else 'General' }} | Student ID: PBC-00{{ student.id }}</p>
+            <p class="page-subtitle">Level: {{ student.classroom.name if student.classroom else 'General' }} | Student ID: PBC-00{{ student.id }}</p>
         </div>
     </div>
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">

@@ -46,7 +46,7 @@
 
     <div class="owlio-card" style="margin-bottom: 0;">
         <h4 style="margin-top: 0;"><i class="fas fa-file-import"></i> Bulk Data Import</h4>
-        <p style="font-size: 0.86rem; color: #64748b; line-height: 1.6;">Upload a CSV or Excel file to create multiple students in one click. Duplicate names in the same environment are skipped automatically.</p>
+        <p style="font-size: 0.86rem; color: #64748b; line-height: 1.6;">Upload a CSV or Excel file to create multiple students in one click. Duplicate names in the same level are skipped automatically.</p>
 
         <form action="{{ url_for('import_students') }}" method="POST" enctype="multipart/form-data" style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
             <div>
@@ -66,8 +66,8 @@
         <div style="margin-top: 18px; padding: 14px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
             <small style="color: #334155; line-height: 1.7;">
                 <strong>Expected columns (any of these combos):</strong><br>
-                first_name, last_name, fee, environment<br>
-                or name, fee, environment
+                first_name, last_name, fee, level<br>
+                or name, fee, level
             </small>
         </div>
     </div>

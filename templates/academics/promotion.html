@@ -10,8 +10,9 @@
         <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 30px; align-items: center;">
             
             <div class="owlio-form-group">
-                <label class="owlio-label">Promote From (Current)</label>
+                <label class="owlio-label">Current Level</label>
                 <select name="from_env" class="owlio-select" required>
+                    <option value="">-- Select Level --</option>
                     {% for env in environments %}
                     <option value="{{ env.id }}">{{ env.name }} ({{ env.level }})</option>
                     {% endfor %}
@@ -23,8 +24,9 @@
             </div>
 
             <div class="owlio-form-group">
-                <label class="owlio-label">Promote To (Next Grade)</label>
+                <label class="owlio-label">Destination Level (or Alumni)</label>
                 <select name="to_env" class="owlio-select" required>
+                    <option value="">-- Select Level --</option>
                     {% for env in environments %}
                     <option value="{{ env.id }}">{{ env.name }} ({{ env.level }})</option>
                     {% endfor %}

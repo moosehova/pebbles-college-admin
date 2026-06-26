@@ -2,7 +2,7 @@
 {% block content %}
 <div class="page-header">
     <h2 class="page-title">Enroll New Student</h2>
-    <p class="page-subtitle">Add a new student to the system and assign an environment.</p>
+    <p class="page-subtitle">Add a new student to the system and assign a level.</p>
 </div>
 
 <div class="owlio-card form-card-wide">
@@ -25,9 +25,9 @@
                 <input type="number" step="0.01" name="tuition_fee" class="owlio-input" placeholder="e.g. 5000" required>
             </div>
             <div class="owlio-form-group">
-                <label class="owlio-label">Assign Environment</label>
+                <label class="owlio-label">Assign Level</label>
                 <select name="class_id" class="owlio-select" required>
-                    <option value="">-- Select Environment --</option>
+                    <option value="">-- Select Level --</option>
                     {% for env in environments %}
                     <option value="{{ env.id }}">{{ env.name }}</option>
                     {% endfor %}

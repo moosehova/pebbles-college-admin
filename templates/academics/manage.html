@@ -1,13 +1,13 @@
 {% extends "layout.html" %}
 {% block content %}
 <div class="page-header">
-    <h2 class="page-title">Manage Environments</h2>
+    <h2 class="page-title">Manage Levels</h2>
     <p class="page-subtitle">Create and organize your Montessori rooms and Primary grades.</p>
 </div>
 
 <div class="owlio-grid" style="grid-template-columns: 1fr 2fr;">
     <div class="owlio-card">
-        <div class="owlio-header"><h3 class="owlio-title">New Environment</h3></div>
+        <div class="owlio-header"><h3 class="owlio-title">New Level</h3></div>
         <form action="/academics/create_env" method="POST">
             <div class="owlio-form-group">
                 <label class="owlio-label">Room/Grade Name</label>

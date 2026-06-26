@@ -8,7 +8,7 @@
 <div class="owlio-card" style="margin-bottom: 20px;">
     <form action="/attendance" method="GET">
         <select name="env_id" onchange="this.form.submit()" class="owlio-select">
-            <option value="">-- Select Environment --</option>
+            <option value="">-- Select Level --</option>
             {% for env in environments %}
             <option value="{{ env.id }}" {% if selected_env and selected_env.id == env.id %}selected{% endif %}>{{ env.name }}</option>
             {% endfor %}
