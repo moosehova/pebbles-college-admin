@@ -698,9 +698,14 @@ def attendance():
     if not restrict_access(['admin', 'staff']):
         return redirect(url_for('parent_portal'))
         
-    env_id = request.args.get('env_id')
-    environments = Environment.query.all()
-    selected_env = None
+    env_id = request.args.get('env_id', type=int)
+    
+    if current_user.role == 'staff':
+        environments = Environment.query.filter_by(teacher_id=current_user.id).all()
+    else:
+        environments = Environment.query.all()
+        
+    current_env = None
     students = []
     
     if env_id:
@@ -1036,17 +1041,27 @@ def manage_academics():
     if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
     envs = Environment.query.all()
-    return render_template('academics/manage.html', environments=envs)
+    teachers = User.query.filter_by(role='staff').all()
+    return render_template('academics/manage.html', environments=envs, teachers=teachers)
 
 @app.route('/academics/create_env', methods=['POST'])
 @login_required
 def create_env():
     if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
-    new_env = Environment(name=request.form['name'], level=request.form['level'])
+    
+    teacher_id = request.form.get('teacher_id')
+    if teacher_id == '':
+        teacher_id = None
+        
+    new_env = Environment(
+        name=request.form['name'], 
+        level=request.form['level'],
+        teacher_id=teacher_id
+    )
     db.session.add(new_env)
     db.session.commit()
-    flash('Environment created successfully!', 'success')
+    flash('Level created successfully!', 'success')
     return redirect(url_for('manage_academics'))
 
 @app.route('/academics/delete_env/<int:env_id>', methods=['POST'])
@@ -1103,9 +1118,21 @@ def edit_grades():
     if not restrict_access(['admin', 'staff', 'accountant']):
         return redirect(url_for('parent_portal'))
 
-    students = Student.query.order_by(Student.first_name.asc()).all()
+    students_query = Student.query
+    if current_user.role == 'staff':
+        staff_env_ids = [env.id for env in Environment.query.filter_by(teacher_id=current_user.id).all()]
+        students_query = students_query.filter(Student.class_id.in_(staff_env_ids))
+        
+    students = students_query.order_by(Student.first_name.asc()).all()
+    student_ids = [s.id for s in students]
+    
     term = request.args.get('term', 'Term 1')
-    grades = Grade.query.filter_by(term=term).order_by(Grade.created_at.desc()).all()
+    
+    grades_query = Grade.query.filter_by(term=term)
+    if current_user.role == 'staff':
+        grades_query = grades_query.filter(Grade.student_id.in_(student_ids))
+        
+    grades = grades_query.order_by(Grade.created_at.desc()).all()
     return render_template('admin/edit_grades.html', students=students, grades=grades, term=term)
 
 
@@ -1308,6 +1335,10 @@ def student_profile(student_id):
         return redirect(url_for('parent_portal'))
 
     student = Student.query.get_or_404(student_id)
+    if current_user.role == 'staff':
+        if not student.classroom or student.classroom.teacher_id != current_user.id:
+            flash("Access denied. You can only view profiles of students in your assigned Level.", "danger")
+            return redirect(url_for('dashboard'))
     recent_attendance = Attendance.query.filter_by(student_id=student_id).order_by(Attendance.date.desc()).limit(10).all()
     grades = Grade.query.filter_by(student_id=student_id).order_by(Grade.created_at.desc()).all()
     merits = BehaviorLog.query.filter_by(student_id=student_id, type='Merit').order_by(BehaviorLog.timestamp.desc()).all()
@@ -1434,8 +1465,14 @@ def view_students():
             )
         )
 
+    if current_user.role == 'staff':
+        staff_env_ids = [env.id for env in Environment.query.filter_by(teacher_id=current_user.id).all()]
+        students_query = students_query.filter(Student.class_id.in_(staff_env_ids))
+        environments = Environment.query.filter_by(teacher_id=current_user.id).order_by(Environment.name.asc()).all()
+    else:
+        environments = Environment.query.order_by(Environment.name.asc()).all()
+        
     students = students_query.order_by(Student.first_name.asc(), Student.last_name.asc()).all()
-    environments = Environment.query.order_by(Environment.name.asc()).all()
 
     student_rows = []
     for student in students:
