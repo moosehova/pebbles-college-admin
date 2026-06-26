@@ -1354,6 +1354,123 @@ def view_report(student_id):
                            year=now.year)
 
 
+@app.route('/academics/report/<int:student_id>/download')
+@login_required
+def download_report_card(student_id):
+    if not restrict_access(['admin', 'staff', 'parent']):
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    if hasattr(current_user, 'role') and current_user.role == 'parent' and current_user.student_id != student_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    student = Student.query.get_or_404(student_id)
+    
+    # Calculate Academic Data
+    grades = Grade.query.filter_by(student_id=student_id).order_by(Grade.created_at.desc()).all()
+    overall_average = round(sum(grade.score for grade in grades) / len(grades), 1) if grades else 0
+
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from io import BytesIO
+
+    stream = BytesIO()
+    doc = SimpleDocTemplate(stream, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle(
+        'ReportTitle', parent=styles['Title'],
+        fontName='Helvetica-Bold', fontSize=22,
+        textColor=colors.HexColor('#1e3a8a'), spaceAfter=4
+    )
+    
+    meta_style = ParagraphStyle(
+        'ReportMeta', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=10,
+        textColor=colors.HexColor('#475569'), spaceAfter=4
+    )
+
+    story = [
+        Paragraph("PEBBLES INTERNATIONAL SCHOOL", title_style),
+        Paragraph("OFFICIAL ACADEMIC REPORT CARD", ParagraphStyle('Sub', parent=title_style, fontSize=14, textColor=colors.HexColor('#475569'), spaceAfter=15)),
+        Spacer(1, 0.5*cm),
+        Paragraph(f"<b>Student Name:</b> {student.first_name} {student.last_name}", meta_style),
+        Paragraph(f"<b>Student ID:</b> PBC-00{student.id}", meta_style),
+        Paragraph(f"<b>Level / Classroom:</b> {student.classroom.name if student.classroom else 'General'}", meta_style),
+        Paragraph(f"<b>Term / Period:</b> End of Term", meta_style),
+        Spacer(1, 0.8*cm),
+    ]
+
+    # Academic Performance Table
+    story.append(Paragraph("<b>Academic Performance</b>", styles['Heading2']))
+    story.append(Spacer(1, 0.2*cm))
+    
+    if grades:
+        ledger_data = [[Paragraph('<b>Subject</b>', styles['Normal']), Paragraph('<b>Score (%)</b>', styles['Normal'])]]
+        for grade in grades:
+            ledger_data.append([grade.subject, f"{grade.score:.1f}%"])
+        
+        ledger_data.append([Paragraph('<b>Overall Average</b>', styles['Normal']), Paragraph(f"<b>{overall_average:.1f}%</b>", styles['Normal'])])
+        
+        t_ledger = Table(ledger_data, colWidths=[10*cm, 5*cm])
+        t_ledger.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e2e8f0')),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#0f172a')),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+            ('TOPPADDING', (0,0), (-1,-1), 8),
+            ('LINEBELOW', (0,0), (-1,0), 2, colors.HexColor('#cbd5e1')),
+            ('LINEBELOW', (0,1), (-1,-2), 0.5, colors.HexColor('#e2e8f0')),
+            ('LINEABOVE', (0,-1), (-1,-1), 1.5, colors.HexColor('#0f172a')), # Above total
+        ]))
+        story.extend([t_ledger, Spacer(1, 1*cm)])
+    else:
+        story.extend([Paragraph("<i>No grades recorded for this student yet.</i>", meta_style), Spacer(1, 1*cm)])
+
+    # General Remarks
+    story.append(Paragraph("<b>Principal's Remarks</b>", styles['Heading2']))
+    story.append(Spacer(1, 0.2*cm))
+    
+    # Try fetching an AcademicReportCard record to get remarks if one exists
+    arc = AcademicReportCard.query.filter_by(student_id=student.id).order_by(AcademicReportCard.id.desc()).first()
+    remarks_text = arc.principal_remarks if (arc and arc.principal_remarks) else "A steady performance this term. Continues to show positive development in class activities and overall conduct. Recommended to maintain this consistency."
+    
+    story.append(Paragraph(remarks_text, styles['Normal']))
+    story.append(Spacer(1, 1.5*cm))
+
+    # Signatures
+    sig_data = [
+        ["_________________________", "_________________________"],
+        ["Class Teacher Signature", "Principal Signature"]
+    ]
+    t_sig = Table(sig_data, colWidths=[7.5*cm, 7.5*cm])
+    t_sig.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('TEXTCOLOR', (0,1), (-1,1), colors.HexColor('#64748b')),
+        ('FONTNAME', (0,1), (-1,1), 'Helvetica-Oblique'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.extend([t_sig, Spacer(1, 2*cm)])
+
+    footer = Paragraph(
+        "This is an official document from Pebbles International School. Any alterations will render it invalid.",
+        ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#94a3b8'), alignment=1)
+    )
+    story.append(footer)
+    
+    doc.build(story)
+    stream.seek(0)
+    
+    return send_file(
+        stream,
+        as_attachment=True,
+        download_name=f"Report_Card_{student.first_name}_{student.last_name}.pdf",
+        mimetype='application/pdf'
+    )
+
+
 @app.route('/student/profile/<int:student_id>')
 @login_required
 def student_profile(student_id):
@@ -3260,6 +3377,113 @@ def calculate_zra_paye_tier(gross_income):
     else:
         return (2000.00 * 0.20) + (2100.00 * 0.30) + ((gross_income - 9200.00) * 0.37)
 
+@app.route('/finance/payslip/<int:payslip_id>/download')
+@login_required
+def download_payslip(payslip_id):
+    if not restrict_access(['admin', 'accountant', 'staff']):
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    payslip = Payslip.query.get_or_404(payslip_id)
+    
+    # If the user is just 'staff', they can only view their own payslip
+    if current_user.role == 'staff' and current_user.staff_id != payslip.staff_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from io import BytesIO
+
+    stream = BytesIO()
+    doc = SimpleDocTemplate(stream, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle(
+        'ReceiptTitle', parent=styles['Title'],
+        fontName='Helvetica-Bold', fontSize=22,
+        textColor=colors.HexColor('#1e3a8a'), spaceAfter=4
+    )
+    
+    meta_style = ParagraphStyle(
+        'ReceiptMeta', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=10,
+        textColor=colors.HexColor('#475569'), spaceAfter=4
+    )
+
+    story = [
+        Paragraph("PEBBLES INTERNATIONAL SCHOOL", title_style),
+        Paragraph("OFFICIAL PAYSLIP", ParagraphStyle('Sub', parent=title_style, fontSize=14, textColor=colors.HexColor('#475569'), spaceAfter=15)),
+        Spacer(1, 0.5*cm),
+        Paragraph(f"<b>Payslip ID:</b> PAY-{payslip.id:06d}", meta_style),
+        Paragraph(f"<b>Payroll Period:</b> {payslip.period.period_name if payslip.period else 'Unknown'}", meta_style),
+        Paragraph(f"<b>Generated On:</b> {payslip.generated_at.strftime('%d %B %Y')}", meta_style),
+        Spacer(1, 0.8*cm),
+    ]
+
+    staff_data = [
+        ['Staff Name', payslip.staff.name],
+        ['Role / Title', payslip.staff.role],
+        ['NRC Number', payslip.staff.nrc_number or 'N/A'],
+    ]
+    t_staff = Table(staff_data, colWidths=[5*cm, 10*cm])
+    t_staff.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8fafc')),
+        ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#64748b')),
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+    ]))
+    story.extend([t_staff, Spacer(1, 1*cm)])
+
+    # Earnings & Deductions
+    ledger_data = [
+        [Paragraph('<b>Description</b>', styles['Normal']), Paragraph('<b>Amount (ZMW)</b>', styles['Normal'])],
+        ['Base Salary', f"K{payslip.base_salary:,.2f}"],
+        ['Housing Allowance', f"K{payslip.housing_allowance:,.2f}"],
+        ['Transport Allowance', f"K{payslip.transport_allowance:,.2f}"],
+        [Paragraph('<b>Gross Earnings</b>', styles['Normal']), Paragraph(f"<b>K{payslip.gross_pay:,.2f}</b>", styles['Normal'])],
+        ['NAPSA Deduction (5%)', f"-K{payslip.napsa_deduction:,.2f}"],
+        ['PAYE Tax (ZRA)', f"-K{payslip.paye_tax:,.2f}"],
+        ['Absence / Unpaid Leave', f"-K{payslip.absence_deductions:,.2f}"],
+        [Paragraph('<b>Total Deductions</b>', styles['Normal']), Paragraph(f"<b>-K{payslip.total_deductions:,.2f}</b>", styles['Normal'])],
+        [Paragraph('<b>NET PAY</b>', styles['Normal']), Paragraph(f"<b>K{payslip.net_pay:,.2f}</b>", styles['Normal'])],
+    ]
+    
+    t_ledger = Table(ledger_data, colWidths=[10*cm, 5*cm])
+    t_ledger.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e2e8f0')),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#0f172a')),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('LINEBELOW', (0,0), (-1,0), 2, colors.HexColor('#cbd5e1')),
+        ('LINEBELOW', (0,1), (-1,-2), 0.5, colors.HexColor('#e2e8f0')),
+        ('LINEABOVE', (0,-2), (-1,-2), 1, colors.HexColor('#0f172a')), # Above total deductions
+        ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#16a34a')), # Net pay row
+        ('TEXTCOLOR', (0,-1), (-1,-1), colors.white),
+    ]))
+    
+    story.extend([t_ledger, Spacer(1, 2*cm)])
+    
+    footer = Paragraph(
+        "This is a computer-generated statutory payslip. If you have any queries regarding your tax bands or deductions, please contact the HR Department.",
+        ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#94a3b8'), alignment=1)
+    )
+    story.append(footer)
+    
+    doc.build(story)
+    stream.seek(0)
+    
+    return send_file(
+        stream,
+        as_attachment=True,
+        download_name=f"Payslip_{payslip.staff.name.replace(' ', '_')}_{payslip.period.period_name.replace(' ', '_')}.pdf",
+        mimetype='application/pdf'
+    )
+
 @app.route('/finance/payroll/process/<int:period_id>', methods=['POST'])
 @login_required
 def generate_monthly_payroll(period_id):
@@ -3331,7 +3555,8 @@ def staff_profile(staff_id):
         return redirect(url_for('parent_portal'))
     staff_member = Staff.query.get_or_404(staff_id)
     linked_user = User.query.filter_by(staff_id=staff_id).first()
-    return render_template('admin/staff_profile.html', staff=staff_member, linked_user=linked_user)
+    payslips = Payslip.query.filter_by(staff_id=staff_id).order_by(Payslip.generated_at.desc()).all()
+    return render_template('admin/staff_profile.html', staff=staff_member, linked_user=linked_user, payslips=payslips)
 
 @app.route('/hr/staff/<int:staff_id>/edit', methods=['POST'])
 @login_required
@@ -3436,6 +3661,38 @@ def staff_clock_action():
 @app.route('/hr/kiosk')
 def kiosk_view():
     return render_template('hr_kiosk.html')
+
+@app.route('/hr/kiosk/lesson-checkin', methods=['POST'])
+def kiosk_lesson_checkin():
+    username = request.form.get('teacher_username', '').strip().lower()
+    
+    if not username:
+        flash("Please insert your teacher username identity token.", "danger")
+        return redirect(url_for('kiosk_view'))
+        
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.staff_id:
+        flash("Profile matching credential token not found.", "danger")
+        return redirect(url_for('kiosk_view'))
+        
+    staff_member = Staff.query.get(user.staff_id)
+    level_id = request.form.get('level_id')
+    
+    env = Environment.query.get(level_id)
+    if not env:
+        flash("Invalid Classroom / Level ID provided.", "danger")
+        return redirect(url_for('kiosk_view'))
+        
+    checkin = ClassroomLessonCheckIn(
+        teacher_id=staff_member.id,
+        level_id=env.id,
+        lesson_topic=request.form.get('lesson_topic'),
+        lesson_objectives_covered=request.form.get('lesson_objectives_covered')
+    )
+    db.session.add(checkin)
+    db.session.commit()
+    flash(f"Success, {staff_member.name}! Lesson check-in for '{checkin.lesson_topic}' logged securely.", "success")
+    return redirect(url_for('kiosk_view'))
 
 @app.route('/hr/leave/request', methods=['POST'])
 @login_required

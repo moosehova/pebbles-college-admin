@@ -59,6 +59,31 @@
                 </button>
             </div>
         </form>
+
+        <div class="mt-8 pt-8 border-t border-slate-700/50">
+            <h3 class="text-xl font-bold mb-4 text-white">Live Lesson Check-In</h3>
+            <p class="text-sm text-slate-400 mb-6">Teachers: Log your finished lesson outcomes directly below.</p>
+            
+            <form action="{{ url_for('kiosk_lesson_checkin') }}" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Teacher Username</label>
+                    <input type="text" name="teacher_username" required autocomplete="off" placeholder="e.g. sarah" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Lesson Topic</label>
+                    <input type="text" name="lesson_topic" required placeholder="e.g. Introduction to Algebra" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Objectives Covered</label>
+                    <textarea name="lesson_objectives_covered" required rows="2" placeholder="Briefly describe what was achieved..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Classroom ID / Level ID</label>
+                    <input type="number" name="level_id" required placeholder="e.g. 1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all">Submit Lesson Check-In</button>
+            </form>
+        </div>
     </main>
 
     <footer class="text-center text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-800/20 py-3 rounded-xl border border-slate-700/20 backdrop-blur-sm">

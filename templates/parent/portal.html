@@ -40,8 +40,8 @@
             </div>
         </div>
         <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-            <a href="{{ url_for('view_report', student_id=student.id) }}" class="owlio-btn" style="text-decoration: none; border: none;">
-                <i class="fas fa-file-pdf"></i> View Term Report Card
+            <a href="{{ url_for('download_report_card', student_id=student.id) }}" class="owlio-btn" style="text-decoration: none; border: none;">
+                <i class="fas fa-file-pdf"></i> Download Term Report Card PDF
             </a>
             <a href="{{ url_for('weekly_digest', student_id=student.id) }}" class="owlio-btn" style="text-decoration: none; background: #0f766e; border: none;">
                 <i class="fas fa-chart-line"></i> Weekly Digest

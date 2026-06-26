@@ -89,6 +89,42 @@
     </div>
 </div>
 
+<!-- Payslips & Salary History -->
+<div class="owlio-card" style="margin-bottom: 30px;">
+    <h3 style="margin-top: 0; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;"><i class="fas fa-file-invoice-dollar"></i> Payslips & Salary History</h3>
+    {% if payslips %}
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+        <thead style="background: #f8fafc;">
+            <tr>
+                <th style="padding: 12px 16px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: #64748b;">Period</th>
+                <th style="padding: 12px 16px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: #64748b;">Gross Pay</th>
+                <th style="padding: 12px 16px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: #64748b;">Total Deductions</th>
+                <th style="padding: 12px 16px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: #64748b;">Net Pay</th>
+                <th style="padding: 12px 16px; text-align: right; font-size: 0.75rem; text-transform: uppercase; color: #64748b;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payslip in payslips %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 14px 16px; font-weight: 600; color: #0f172a;">{{ payslip.period.period_name if payslip.period else 'Unknown' }}</td>
+                <td style="padding: 14px 16px; color: #475569;">K{{ "%.2f"|format(payslip.gross_pay) }}</td>
+                <td style="padding: 14px 16px; color: #ef4444;">-K{{ "%.2f"|format(payslip.total_deductions) }}</td>
+                <td style="padding: 14px 16px; font-weight: 800; color: #166534;">K{{ "%.2f"|format(payslip.net_pay) }}</td>
+                <td style="padding: 14px 16px; text-align: right;">
+                    <a href="{{ url_for('download_payslip', payslip_id=payslip.id) }}" class="owlio-btn" style="padding: 6px 12px; font-size: 0.75rem; background: #3b82f6; border: none; text-decoration: none;"><i class="fas fa-download"></i> Download PDF</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding: 30px; text-align: center; color: #94a3b8;">
+        <i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 10px; color: #cbd5e1;"></i>
+        <p>No payslips generated for this staff member yet.</p>
+    </div>
+    {% endif %}
+</div>
+
 <div class="owlio-card" style="border: 1px solid #fee2e2; background: #fff5f5;">
     <h3 style="margin-top: 0; color: #991b1b;"><i class="fas fa-exclamation-triangle"></i> Danger Zone</h3>
     <p style="color: #ef4444; font-size: 0.9rem; margin-bottom: 15px;">Terminating a staff member will permanently delete their HR profile, attendance history, and instantly revoke their system login access. This action cannot be undone.</p>
