@@ -3209,29 +3209,52 @@ def add_book():
 def issue_book():
     if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
     
-    book_id = request.form.get('book_id')
-    book = Book.query.get_or_404(book_id)
-    
-    if book.available_copies <= 0:
-        flash("No copies currently available for circulation.", "danger")
-        return redirect(url_for('library_hub'))
+    try:
+        book_id = request.form.get('book_id')
+        if not book_id:
+            flash("No book selected.", "danger")
+            return redirect(url_for('library_hub'))
+
+        book = Book.query.get(int(book_id))
+        if not book:
+            flash("Book not found in catalog.", "danger")
+            return redirect(url_for('library_hub'))
         
-    days_allocated = int(request.form.get('loan_duration', 14))
-    due = datetime.utcnow().date() + timedelta(days=days_allocated)
+        if book.available_copies <= 0:
+            flash("No copies currently available for circulation.", "danger")
+            return redirect(url_for('library_hub'))
+        
+        # Safely parse optional fields
+        raw_student_id = request.form.get('student_id', '').strip()
+        raw_user_id = request.form.get('user_id', '').strip()
+        student_id = int(raw_student_id) if raw_student_id.isdigit() else None
+        user_id = int(raw_user_id) if raw_user_id.isdigit() else None
+
+        if not student_id and not user_id:
+            flash("Please enter a valid Student ID to issue this book.", "danger")
+            return redirect(url_for('library_hub'))
+            
+        days_allocated = int(request.form.get('loan_duration', 14))
+        due = datetime.utcnow().date() + timedelta(days=days_allocated)
+        
+        loan = BookLoan(
+            book_id=int(book_id),
+            student_id=student_id,
+            user_id=user_id,
+            due_date=due,
+            status='Issued'
+        )
+        
+        book.available_copies -= 1
+        db.session.add(loan)
+        db.session.commit()
+        flash(f"Book '{book.title}' successfully checked out (due {due.strftime('%b %d, %Y')}).", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Could not issue book. Please check the Student ID and try again.", "danger")
     
-    loan = BookLoan(
-        book_id=book_id,
-        student_id=request.form.get('student_id') or None,
-        user_id=request.form.get('user_id') or None,
-        due_date=due,
-        status='Issued'
-    )
-    
-    book.available_copies -= 1
-    db.session.add(loan)
-    db.session.commit()
-    flash("Book successfully checked out.", "success")
     return redirect(url_for('library_hub'))
+
 
 # ====================================================================
 # FLEET LOGISTICS PIPELINES
