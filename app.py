@@ -1298,7 +1298,8 @@ def create_parent():
             username=request.form.get('username'),
             password=hashed_pw,
             role='parent',
-            student_id=request.form.get('student_id')
+            student_id=request.form.get('student_id'),
+            phone_number=request.form.get('phone_number') or None
         )
         db.session.add(new_parent)
         db.session.commit()
@@ -2164,12 +2165,14 @@ def remind_all():
 
     students = Student.query.all()
     sent = 0
+    whatsapp_sent = 0
     for student in students:
         total_paid = db.session.query(sa.func.sum(Income.amount)).filter(Income.student_id == student.id).scalar() or 0
         balance = (student.tuition_fee or 0) - total_paid
         if balance > 0:
             parent = User.query.filter_by(student_id=student.id, role='parent').first()
             if parent:
+                # In-app notification (always)
                 msg = Message(
                     sender_id=current_user.id,
                     receiver_id=parent.id,
@@ -2183,8 +2186,18 @@ def remind_all():
                 db.session.add(msg)
                 sent += 1
 
+                # WhatsApp dispatch (if phone number available)
+                if parent.phone_number:
+                    whatsapp_body = (
+                        f"Hello Parent of {student.first_name}. This is a friendly notice from Pebbles School. "
+                        f"An outstanding balance of K{balance:,.2f} remains on your account. "
+                        f"Please contact the accounts office to clear your statements."
+                    )
+                    send_whatsapp_message(parent.phone_number, whatsapp_body)
+                    whatsapp_sent += 1
+
     db.session.commit()
-    flash(f"Reminder notification sent to {sent} parent(s) with outstanding balances.", "success")
+    flash(f"Reminder sent to {sent} parent(s). WhatsApp dispatched to {whatsapp_sent}.", "success")
     return redirect(url_for('finance_intelligence'))
 
 
@@ -2192,7 +2205,7 @@ def remind_all():
 @app.route('/attendance/remind-risk', methods=['POST'])
 @login_required
 def remind_attendance_risks():
-    if not restrict_access(['admin', 'accountant']):
+    if not restrict_access(['admin', 'accountant', 'staff']):
         return redirect(url_for('dashboard'))
 
     sent = 0

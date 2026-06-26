@@ -23,6 +23,7 @@ class User(db.Model, UserMixin):
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=True)
     profile_pic = db.Column(db.String(255), default='default.png')
+    phone_number = db.Column(db.String(50), nullable=True)
 
 class Environment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
