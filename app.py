@@ -716,7 +716,8 @@ def attendance():
 
     from datetime import date
     today = date.today()
-    attendance_records = Attendance.query.filter_by(date=today).all()
+    all_attendance = Attendance.query.filter_by(date=today).all()
+    attendance_records = [a for a in all_attendance if a.student]
     
     return render_template('academics/attendance.html', 
                            environments=environments,
@@ -834,10 +835,9 @@ def dashboard():
 
     class_avg_map = {}
     for grade in all_grades:
-        classroom = grade.student.classroom
-        if not classroom:
+        if not grade.student or not grade.student.classroom:
             continue
-        class_name = classroom.name
+        class_name = grade.student.classroom.name
         if class_name not in class_avg_map:
             class_avg_map[class_name] = []
         class_avg_map[class_name].append(grade.score)
@@ -1132,7 +1132,10 @@ def edit_grades():
     if current_user.role == 'staff':
         grades_query = grades_query.filter(Grade.student_id.in_(student_ids))
         
-    grades = grades_query.order_by(Grade.created_at.desc()).all()
+    all_grades = grades_query.order_by(Grade.created_at.desc()).all()
+    # Filter out orphaned grades
+    grades = [g for g in all_grades if g.student]
+    
     return render_template('admin/edit_grades.html', students=students, grades=grades, term=term)
 
 
