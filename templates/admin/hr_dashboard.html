@@ -24,7 +24,7 @@
 </div>
 
 <div class="bg-white border border-slate-100 rounded-xl p-1.5 shadow-sm inline-flex mb-8">
-    <nav class="flex gap-1" aria-label="Tabs">
+    <nav class="flex gap-1.5" aria-label="Tabs">
         <button onclick="switchTab('roster')" id="btn-roster" class="tab-btn active flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-blue-600 text-white shadow-sm transition-all duration-200">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             <span>Workforce Roster</span>
@@ -39,7 +39,7 @@
             <svg class="w-4 h-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span>Leave Management</span>
             {% if pending_leaves %}
-            <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-500 rounded-full">{{ pending_leaves|length }}</span>
+            <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-500 rounded-full ml-1">{{ pending_leaves|length }}</span>
             {% endif %}
         </button>
     </nav>

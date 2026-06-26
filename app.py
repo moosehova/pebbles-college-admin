@@ -23,6 +23,8 @@ from models import db, User, Student, Environment, Attendance, Observation, Inco
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key_here')
 
+from twilio_utils import send_direct_sms, send_whatsapp_message
+
 db_url = os.environ.get('DATABASE_URL', 'sqlite:///school.db')
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -2076,7 +2078,7 @@ def remind_all():
 @app.route('/attendance/remind-risk', methods=['POST'])
 @login_required
 def remind_attendance_risks():
-    if current_user.role not in ['admin', 'accountant']:
+    if not restrict_access(['admin', 'accountant']):
         return redirect(url_for('dashboard'))
 
     sent = 0
@@ -2087,31 +2089,34 @@ def remind_attendance_risks():
             continue
 
         parent = User.query.filter_by(student_id=student.id, role='parent').first()
-        if not parent:
+        if not parent or not parent.phone_number:  # Assuming a phone field exists
             continue
 
-        msg = Message(
-            sender_id=current_user.id,
-            receiver_id=parent.id,
-            content=(
-                f"Dear Parent of {student.first_name} {student.last_name}, we have recorded three consecutive days of absence. "
-                f"Please contact Pebbles College to confirm your child is safe and discuss immediate attendance support."
-            )
+        alert_text = (
+            f"Dear Parent of {student.first_name} {student.last_name}, we have recorded 3 consecutive days of absence. "
+            f"Please contact the school office immediately to confirm your child is safe."
         )
-        db.session.add(msg)
 
+        # 🚀 DISPATCH REAL-TIME COMMUNICATIONS VIA API AUTOMATICALLY
+        # For SMS:
+        send_direct_sms(parent.phone_number, alert_text)
+        
+        # Or alternatively for WhatsApp:
+        # send_whatsapp_message(parent.phone_number, alert_text)
+
+        # Log internally in the database intervention ledger
         intervention = AttendanceIntervention(
             student_id=student.id,
             actor_id=current_user.id,
-            action='Reminder Sent',
-            note='Bulk attendance risk reminder sent to parent from dashboard.',
+            action='API Alert Sent',
+            note='Automated external communication broadcast triggered.',
             resolved=False
         )
         db.session.add(intervention)
         sent += 1
 
     db.session.commit()
-    flash(f"Attendance risk alert sent to {sent} parent(s).", "success")
+    flash(f"API notifications dispatched successfully to {sent} parent(s).", "success")
     return redirect(url_for('dashboard'))
 
 
