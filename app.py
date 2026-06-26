@@ -1443,6 +1443,35 @@ def search_autocomplete():
     ])
 
 
+@app.route('/student/delete/<int:student_id>', methods=['POST'])
+@login_required
+def delete_student(student_id):
+    if not restrict_access(['admin']):
+        flash("Only administrators can delete students.", "danger")
+        return redirect(url_for('view_students'))
+        
+    student = Student.query.get_or_404(student_id)
+    
+    # We delete manually to avoid constraint errors if any
+    Attendance.query.filter_by(student_id=student_id).delete()
+    Observation.query.filter_by(student_id=student_id).delete()
+    BehaviorLog.query.filter_by(student_id=student_id).delete()
+    Grade.query.filter_by(student_id=student_id).delete()
+    AttendanceIntervention.query.filter_by(student_id=student_id).delete()
+    CoCurricularBooking.query.filter_by(student_id=student_id).delete()
+    Income.query.filter_by(student_id=student_id).delete()
+    
+    # Check if there is an associated parent account to also consider
+    # If the user is linked via student_id (the parent login)
+    parent_users = User.query.filter_by(student_id=student_id).all()
+    for pu in parent_users:
+        db.session.delete(pu)
+        
+    db.session.delete(student)
+    db.session.commit()
+    flash(f'Student {student.first_name} {student.last_name} deleted permanently.', 'success')
+    return redirect(url_for('view_students'))
+
 @app.route('/students')
 @login_required
 def view_students():

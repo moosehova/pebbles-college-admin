@@ -81,6 +81,11 @@
         </a>
         <button type="button" onclick="openBehaviorModal('Merit')" class="owlio-btn" style="background: #10b981; border: none;">+ Log Merit</button>
         <button type="button" onclick="openBehaviorModal('Demerit')" class="owlio-btn" style="background: #ef4444; border: none;">- Log Demerit</button>
+        {% if current_user.role == 'admin' %}
+        <form action="{{ url_for('delete_student', student_id=student.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('WARNING: Are you sure you want to permanently delete this student and all their associated data?');">
+            <button type="submit" class="owlio-btn" style="background: #b91c1c; border: none;"><i class="fas fa-trash"></i> Delete Student</button>
+        </form>
+        {% endif %}
     </div>
 </div>
 

@@ -67,10 +67,15 @@
                     {% endfor %}
                 </td>
                 <td style="padding: 18px 24px; color: {{ '#991b1b' if row.balance > 0 else '#166534' }}; font-weight: 800;">K{{ '%.2f'|format(row.balance) }}</td>
-                <td style="padding: 18px 24px; text-align: right;">
+                <td style="padding: 18px 24px; text-align: right; display: flex; gap: 10px; justify-content: flex-end;">
                     <a href="{{ url_for('student_profile', student_id=row.student.id) }}" class="owlio-btn" style="text-decoration: none; border: none; background: #1e3a8a;">
                         <i class="fas fa-user-graduate"></i> Open Student 360
                     </a>
+                    {% if current_user.role == 'admin' %}
+                    <form action="{{ url_for('delete_student', student_id=row.student.id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('WARNING: Are you sure you want to permanently delete this student and all their associated data?');">
+                        <button type="submit" class="owlio-btn" style="background: #b91c1c; border: none; padding: 10px 14px;"><i class="fas fa-trash"></i></button>
+                    </form>
+                    {% endif %}
                 </td>
             </tr>
             {% else %}
