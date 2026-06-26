@@ -480,7 +480,7 @@ class ClassSchedule(db.Model):
     __tablename__ = 'class_schedules'
     
     id = db.Column(db.Integer, primary_key=True)
-    level_id = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=False) # Points to your 'Level' model
+    level_id = db.Column(db.Integer, db.ForeignKey('environment.id'), nullable=False) # Points to your 'Level' model
     teacher_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
     
     subject = db.Column(db.String(100), nullable=False)
@@ -493,7 +493,7 @@ class ClassroomLessonCheckIn(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
-    level_id = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=False)
+    level_id = db.Column(db.Integer, db.ForeignKey('environment.id'), nullable=False)
     
     checkin_time = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     lesson_topic = db.Column(db.String(255), nullable=False) # e.g., "Fractions & Percentages"
