@@ -708,7 +708,7 @@ def attendance():
     else:
         environments = Environment.query.all()
         
-    current_env = None
+    selected_env = None
     students = []
     
     if env_id:
