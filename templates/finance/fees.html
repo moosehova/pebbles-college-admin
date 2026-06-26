@@ -41,6 +41,7 @@
                         <th class="px-6 py-3.5">Student Profile Name</th>
                         <th class="px-6 py-3.5">Payment Method Channel</th>
                         <th class="px-6 py-3.5 text-right">Receipt Amount</th>
+                        <th class="px-6 py-3.5 text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
@@ -54,10 +55,17 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 text-right font-bold text-slate-900 tabular-nums">K{{ "{:,.2f}".format(fee.amount) }}</td>
+                        
+                        <td class="px-6 py-4 text-center">
+                            <a href="{{ url_for('download_historical_receipt', income_id=fee.id) }}" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1.5 rounded-lg transition-all border border-blue-100">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16v1a2 2 0 002 2h14a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Download PDF
+                            </a>
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="px-6 py-10 text-center text-slate-400 font-medium">No transactional payment entries captured on this domain yet.</td>
+                        <td colspan="5" class="px-6 py-10 text-center text-slate-400 font-medium">No transactional payment entries captured on this domain yet.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
