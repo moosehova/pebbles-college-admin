@@ -16,6 +16,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 for elegant system alerts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         tailwind.config = {
             corePlugins: {
@@ -192,31 +194,69 @@
                 </div>
             </header>
             {% endif %}
-                        <div class="container" style="padding: 0 30px; position: fixed; top: 20px; width: 100%; z-index: 9999; max-width: 500px; left: 50%; transform: translateX(-50%);">
-                                {% with messages = get_flashed_messages(with_categories=true) %}
-                                    {% if messages %}
-                                        {% for category, message in messages %}
-                                            <div class="alert alert-{{ category }} fade-out" style="padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid transparent; 
-                                                {% if category == 'danger' %} background-color: #fee2e2; color: #991b1b; border-color: #fecaca;
-                                                {% elif category == 'success' %} background-color: #d1fae5; color: #065f46; border-color: #a7f3d0;
-                                                {% else %} background-color: #e0f2fe; color: #0369a1; border-color: #bae6fd; {% endif %}">
-                                                <i class="fas {% if category == 'danger' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
-                                                {{ message }}
-                                            </div>
-                                        {% endfor %}
-                                    {% endif %}
-                                {% endwith %}
-                        </div>
-                        <script>
-                                // Auto-hide messages after 4 seconds so they don't stack up
-                                setTimeout(function() {
-                                        let alerts = document.querySelectorAll('.alert');
-                                        alerts.forEach(alert => {
-                                                alert.style.transition = "opacity 0.5s ease";
-                                                alert.style.opacity = "0";
-                                                setTimeout(() => alert.remove(), 500);
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', () => {
+                                        const Toast = Swal.mixin({
+                                          toast: true,
+                                          position: 'top-end',
+                                          showConfirmButton: false,
+                                          timer: 4000,
+                                          timerProgressBar: true,
+                                          didOpen: (toast) => {
+                                            toast.onmouseenter = Swal.stopTimer;
+                                            toast.onmouseleave = Swal.resumeTimer;
+                                          }
                                         });
-                                }, 4000);
+
+                                        {% for category, message in messages %}
+                                            {% set icon = 'error' if category == 'danger' else 'success' if category == 'success' else 'info' %}
+                                            Toast.fire({
+                                              icon: '{{ icon }}',
+                                              title: '{{ message | replace("'", "\\'") }}'
+                                            });
+                                        {% endfor %}
+                                    });
+                                </script>
+                            {% endif %}
+                        {% endwith %}
+                        <script>
+                            document.addEventListener('DOMContentLoaded', () => {
+                                // Intercept all forms with onsubmit="return confirm('...')"
+                                document.querySelectorAll('form').forEach(form => {
+                                    const onsubmitAttr = form.getAttribute('onsubmit');
+                                    if (onsubmitAttr && onsubmitAttr.includes('confirm(')) {
+                                        // Extract the message inside confirm('...')
+                                        const match = onsubmitAttr.match(/confirm\(['"](.*?)['"]\)/);
+                                        const msg = match ? match[1] : 'Are you sure you want to proceed?';
+                                        
+                                        // Remove inline onsubmit to prevent standard browser confirm
+                                        form.removeAttribute('onsubmit');
+                                        
+                                        form.addEventListener('submit', function(e) {
+                                            e.preventDefault();
+                                            Swal.fire({
+                                                title: 'Are you sure?',
+                                                text: msg,
+                                                icon: 'warning',
+                                                showCancelButton: true,
+                                                confirmButtonColor: '#b91c1c',
+                                                cancelButtonColor: '#64748b',
+                                                confirmButtonText: 'Yes, proceed',
+                                                cancelButtonText: 'Cancel',
+                                                customClass: {
+                                                    popup: 'sweet-alert-custom'
+                                                }
+                                            }).then((result) => {
+                                                if (result.isConfirmed) {
+                                                    form.submit();
+                                                }
+                                            });
+                                        });
+                                    }
+                                });
+                            });
                         </script>
                         {% block content %}
                         {% endblock %}

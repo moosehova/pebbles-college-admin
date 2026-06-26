@@ -472,9 +472,15 @@
     function submitEvent(e) {
         e.preventDefault();
         // This is a placeholder - in a full implementation, 
-        // you would send this to a backend route to save the event
-        alert('Event creation form submitted. Integrate with backend to save.');
-        closeEventModal();
+        // you would send this to backend
+        Swal.fire({
+            icon: 'success',
+            title: 'Event Created',
+            text: 'Event creation form submitted. Integrate with backend to save.',
+            confirmButtonColor: '#1e3a8a'
+        });
+        document.getElementById('eventModal').style.display = 'none';
+        document.getElementById('eventForm').reset();
         // Reload calendar events
         // location.reload();
     }
@@ -531,17 +537,35 @@
             method: 'POST',
             body: formData
         })
-        .then(response => {
-            if (response.ok) {
-                alert(`RSVP submitted: ${status.replace('_', ' ').toUpperCase()}`);
-                closeRsvpModal();
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'RSVP Submitted',
+                    text: `RSVP submitted: ${status.replace('_', ' ').toUpperCase()}`,
+                    confirmButtonColor: '#1e3a8a',
+                    timer: 2000
+                });
+                // Reload calendar to reflect new RSVP
+                setTimeout(() => location.reload(), 2000);
             } else {
-                alert('Failed to submit RSVP. Please try again.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Failed to submit RSVP. Please try again.',
+                    confirmButtonColor: '#b91c1c'
+                });
             }
         })
-        .catch(error => {
-            console.error('Error submitting RSVP:', error);
-            alert('Error submitting RSVP.');
+        .catch(err => {
+            console.error('Error submitting RSVP:', err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error submitting RSVP.',
+                confirmButtonColor: '#b91c1c'
+            });
         });
     }
 
