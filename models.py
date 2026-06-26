@@ -1,7 +1,7 @@
 
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, time
 
 db = SQLAlchemy()
 
@@ -396,3 +396,126 @@ class InstallmentPlan(db.Model):
     total_amount_paid = db.Column(db.Float, default=0.0)
     installments_allowed = db.Column(db.Integer, default=3) # e.g., 3-part plan
     status = db.Column(db.String(50), default='Active') # Active, Fully Paid, Defaulted
+
+# ====================================================================
+# 1. ADVANCED ZAMBIAN PAYROLL & STATUTORY PAYSLIP SCHEMAS
+# ====================================================================
+class PayrollPeriod(db.Model):
+    __tablename__ = 'payroll_periods'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    period_name = db.Column(db.String(50), unique=True, nullable=False) # e.g., "June 2026"
+    status = db.Column(db.String(30), default='Draft') # Draft, Approved, Paid
+    processed_at = db.Column(db.DateTime, nullable=True)
+    
+    payslips = db.relationship('Payslip', backref='period', cascade='all, delete-orphan', lazy=True)
+
+class Payslip(db.Model):
+    __tablename__ = 'staff_payslips'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
+    payroll_period_id = db.Column(db.Integer, db.ForeignKey('payroll_periods.id'), nullable=False)
+    
+    # Base Components (ZMW)
+    base_salary = db.Column(db.Float, default=0.0, nullable=False)
+    housing_allowance = db.Column(db.Float, default=0.0)
+    transport_allowance = db.Column(db.Float, default=0.0)
+    gross_pay = db.Column(db.Float, default=0.0, nullable=False)
+    
+    # Statutory Deductions (Zambia Specific Context)
+    napsa_deduction = db.Column(db.Float, default=0.0) # 5% capped at NAPSA ceiling
+    paye_tax = db.Column(db.Float, default=0.0) # Progressive ZRA tax bands
+    absence_deductions = db.Column(db.Float, default=0.0) # Deductions for unexcused timecards
+    total_deductions = db.Column(db.Float, default=0.0)
+    net_pay = db.Column(db.Float, default=0.0, nullable=False)
+    
+    generated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ====================================================================
+# 2. ACADEMIC MARKS, EXAMINATIONS & STUDENT PROGRESS REMARKS
+# ====================================================================
+class Examination(db.Model):
+    __tablename__ = 'examinations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False) # e.g., "Mid-Term 2 Assessment", "Final Exams"
+    term = db.Column(db.String(50), nullable=False) # e.g., "Term 2, 2026"
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(50), default='Upcoming') # Upcoming, Active, Completed, Published
+
+class ExamResult(db.Model):
+    __tablename__ = 'exam_results'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    exam_id = db.Column(db.Integer, db.ForeignKey('examinations.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    subject = db.Column(db.String(100), nullable=False) # e.g., "Mathematics", "English Literature"
+    
+    ca_score = db.Column(db.Float, default=0.0) # Continuous Assessment score (e.g., out of 30)
+    exam_score = db.Column(db.Float, default=0.0) # Final Exam paper score (e.g., out of 70)
+    total_score = db.Column(db.Float, nullable=False) # Combined out of 100
+    grade = db.Column(db.String(10), nullable=True) # Distinction, Merit, Credit, Pass, Fail
+    
+    teacher_remarks = db.Column(db.Text, nullable=True) # Specific subject comments
+    logged_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class AcademicReportCard(db.Model):
+    __tablename__ = 'academic_report_cards'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    term = db.Column(db.String(50), nullable=False)
+    
+    class_teacher_remarks = db.Column(db.Text, nullable=True) # Overall class behavior commentary
+    principal_remarks = db.Column(db.Text, nullable=True) # Head of institution endorsement
+    conduct_rating = db.Column(db.String(50), default='Excellent')
+    is_published = db.Column(db.Boolean, default=False)
+
+# ====================================================================
+# 3. REAL-TIME TIMETABLES & LIVE CLASSROOM CORRIDOR CHECK-INS
+# ====================================================================
+class ClassSchedule(db.Model):
+    __tablename__ = 'class_schedules'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    level_id = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=False) # Points to your 'Level' model
+    teacher_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
+    
+    subject = db.Column(db.String(100), nullable=False)
+    day_of_week = db.Column(db.String(20), nullable=False) # Monday, Tuesday, etc.
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time, nullable=False)
+
+class ClassroomLessonCheckIn(db.Model):
+    __tablename__ = 'classroom_lesson_checkins'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
+    level_id = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=False)
+    
+    checkin_time = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    lesson_topic = db.Column(db.String(255), nullable=False) # e.g., "Fractions & Percentages"
+    lesson_objectives_covered = db.Column(db.Text, nullable=False)
+    student_behavior_notes = db.Column(db.Text, nullable=True)
+
+# ====================================================================
+# 4. TRANSPORT ROUTE ASSET TRACKING
+# ====================================================================
+class TransportRoute(db.Model):
+    __tablename__ = 'transport_routes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False) # References your active fleet
+    route_name = db.Column(db.String(150), nullable=False) # e.g., "Chelstone - Avondale Run"
+    driver_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=True)
+    monthly_fee = db.Column(db.Float, default=0.0)
+
+class RouteAssignment(db.Model):
+    __tablename__ = 'route_assignments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    route_id = db.Column(db.Integer, db.ForeignKey('transport_routes.id'), nullable=False)
+    pickup_point = db.Column(db.String(255), nullable=True)

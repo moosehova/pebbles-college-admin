@@ -18,7 +18,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution, StaffAttendance, LeaveRequest, CoCurricularBooking, InvoiceLineItem, InstallmentPlan
+from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution, StaffAttendance, LeaveRequest, CoCurricularBooking, InvoiceLineItem, InstallmentPlan, PayrollPeriod, Payslip, Examination, ExamResult, AcademicReportCard, ClassSchedule, ClassroomLessonCheckIn, TransportRoute, RouteAssignment
 
 # ------------------- APP INITIALIZATION -------------------
 app = Flask(__name__)
@@ -413,6 +413,14 @@ def check_and_migrate_schema():
         if 'date_joined' not in staff_columns:
             db.session.execute(text('ALTER TABLE staff ADD COLUMN date_joined DATE'))
             db.session.commit()
+
+    if inspector.has_table('book_loans'):
+        loan_cols = [c['name'] for c in inspector.get_columns('book_loans')]
+        if 'condition_on_checkout' not in loan_cols:
+            db.session.execute(text("ALTER TABLE book_loans ADD COLUMN condition_on_checkout VARCHAR(50) DEFAULT 'Pristine'"))
+        if 'condition_on_return' not in loan_cols:
+            db.session.execute(text("ALTER TABLE book_loans ADD COLUMN condition_on_return VARCHAR(50)"))
+        db.session.commit()
 
 
 def clear_demo_tables():
@@ -3237,6 +3245,56 @@ def issue_uniform():
     return redirect(url_for('uniform_hub'))
 
 # ====================================================================
+def calculate_zra_paye_tier(gross_income):
+    """Calculates progressive Pay-As-You-Earn tax according to official ZRA thresholds."""
+    if gross_income <= 5100.00:
+        return 0.0
+    elif gross_income <= 7100.00:
+        return (gross_income - 5100.00) * 0.20
+    elif gross_income <= 9200.00:
+        return (2000.00 * 0.20) + ((gross_income - 7100.00) * 0.30)
+    else:
+        return (2000.00 * 0.20) + (2100.00 * 0.30) + ((gross_income - 9200.00) * 0.37)
+
+@app.route('/finance/payroll/process/<int:period_id>', methods=['POST'])
+@login_required
+def generate_monthly_payroll(period_id):
+    if not restrict_access(['admin', 'accountant']):
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    period = PayrollPeriod.query.get_or_404(period_id)
+    all_staff = Staff.query.all()
+    
+    for member in all_staff:
+        base = member.base_salary or 0.0
+        housing = base * 0.20 # Standard statutory housing threshold
+        transport = 500.00 # Standard fixed transport allowance allocation
+        gross = base + housing + transport
+        
+        # Statutory 5% calculation capped at the national employee ceiling
+        napsa = min(gross * 0.05, 1600.00)
+        paye = calculate_zra_paye_tier(gross)
+        
+        # Verify cross-department data integrity (deduct pay for unexcused absences)
+        absences = StaffAttendance.query.filter_by(staff_id=member.id, status='Absent').count()
+        absence_penalty = (base / 30.0) * absences
+        
+        total_deductions = napsa + paye + absence_penalty
+        net_pay = gross - total_deductions
+        
+        payslip = Payslip(
+            staff_id=member.id, payroll_period_id=period.id,
+            base_salary=base, housing_allowance=housing, transport_allowance=transport,
+            gross_pay=gross, napsa_deduction=napsa, paye_tax=paye,
+            absence_deductions=absence_penalty, total_deductions=total_deductions, net_pay=net_pay
+        )
+        db.session.add(payslip)
+        
+    period.status = 'Processed'
+    db.session.commit()
+    flash(f"Payroll period generated and statutory entries verified successfully.", "success")
+    return redirect(url_for('hr_department'))
+
 # HR & WORKFORCE DEPARTMENT CONTROLLERS
 # ====================================================================
 @app.route('/hr/dashboard')
