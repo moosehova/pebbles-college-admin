@@ -1,63 +1,189 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="page-header">
-    <h2 class="page-title">Fee Collection</h2>
-    <p class="page-subtitle">Manage tuition payments and student accounts.</p>
+<div class="p-6 max-w-7xl mx-auto space-y-8">
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Fee Ledger & Accounts</h1>
+            <p class="text-sm text-slate-500 font-medium mt-1">Generate itemized termly invoices and capture flexible parent installment payments.</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="openModal('invoice-modal')" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path></svg>
+                Create Itemized Invoice
+            </button>
+            <button onclick="openModal('payment-modal')" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all border border-slate-200/60">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"></path></svg>
+                Record Office Payment
+            </button>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="p-4 rounded-xl text-sm font-semibold border {% if category == 'success' %}bg-emerald-50 text-emerald-700 border-emerald-200{% else %}bg-rose-50 text-rose-700 border-rose-200{% endif %} shadow-sm">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h2 class="text-base font-bold text-slate-900">Recent Accounts Activity</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <th class="px-6 py-3.5">Date Logging</th>
+                        <th class="px-6 py-3.5">Student Profile Name</th>
+                        <th class="px-6 py-3.5">Payment Method Channel</th>
+                        <th class="px-6 py-3.5 text-right">Receipt Amount</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                    {% for fee in fees %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-4 text-slate-400 tabular-nums">{{ fee.date.strftime('%d %b %Y %H:%M') }}</td>
+                        <td class="px-6 py-4 font-semibold text-slate-900">{{ fee.student.first_name }} {{ fee.student.last_name }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold {% if fee.method == 'Bank Transfer' %}bg-blue-50 text-blue-700 border border-blue-100{% else %}bg-amber-50 text-amber-700 border border-amber-100{% endif %}">
+                                {{ fee.method }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right font-bold text-slate-900 tabular-nums">K{{ "{:,.2f}".format(fee.amount) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-10 text-center text-slate-400 font-medium">No transactional payment entries captured on this domain yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
-<div class="owlio-grid" style="grid-template-columns: 1fr 2fr;">
-    <div class="owlio-card">
-        <div class="owlio-header"><h3 class="owlio-title">Record Payment</h3></div>
-        <form action="/finance/fees" method="POST">
-            <div class="owlio-form-group">
-                <label class="owlio-label">Select Student</label>
-                <select name="student_id" class="owlio-select" required>
+<div id="invoice-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+    <div class="bg-white rounded-3xl max-w-lg w-full border border-slate-100 shadow-2xl p-6 space-y-6 relative">
+        <div class="flex justify-between items-center">
+            <h3 class="text-lg font-black text-slate-900 tracking-tight">Generate Itemized Invoice</h3>
+            <button onclick="closeModal('invoice-modal')" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <form action="{{ url_for('create_structured_invoice') }}" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Target Student Profile</label>
+                <select name="student_id" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                    {% for student in students %}
+                    <option value="{{ student.id }}">{{ student.first_name }} {{ student.last_name }} ({{ student.classroom.name if student.classroom else 'No Level' }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Academic Billing Term</label>
+                <select name="term" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                    <option value="Term 1, 2026">Term 1, 2026</option>
+                    <option value="Term 2, 2026" selected>Term 2, 2026</option>
+                    <option value="Term 3, 2026">Term 3, 2026</option>
+                </select>
+            </div>
+
+            <div class="border-t border-slate-100 pt-4 space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">Financial Breakdown Splits (ZMW)</h4>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 mb-1">Base Tuition</label>
+                        <input type="number" name="base_tuition" step="0.01" value="4000.00" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 mb-1">Development Levy</label>
+                        <input type="number" name="dev_levy" step="0.01" value="500.00" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 mb-1">PTA Contribution</label>
+                        <input type="number" name="pta_fund" step="0.01" value="250.00" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 mb-1">Tech / Digital Lab</label>
+                        <input type="number" name="tech_fee" step="0.01" value="250.00" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold py-3 px-4 rounded-xl text-sm shadow-md shadow-blue-600/10 transition-all mt-4">
+                Confirm & Discard Invoice
+            </button>
+        </form>
+    </div>
+</div>
+
+<div id="payment-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+    <div class="bg-white rounded-3xl max-w-lg w-full border border-slate-100 shadow-2xl p-6 space-y-6 relative">
+        <div class="flex justify-between items-center">
+            <h3 class="text-lg font-black text-slate-900 tracking-tight">Record Office Receipt</h3>
+            <button onclick="closeModal('payment-modal')" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <form action="{{ url_for('record_flexible_payment') }}" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Student Profile Payer</label>
+                <select name="student_id" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
                     {% for student in students %}
                     <option value="{{ student.id }}">{{ student.first_name }} {{ student.last_name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <br>
-            <div class="owlio-form-group">
-                <label class="owlio-label">Amount Paid (K)</label>
-                <input type="number" name="amount" class="owlio-input" placeholder="e.g. 1500" required>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Payment Method</label>
+                    <select name="method" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Mobile Money">Mobile Money</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Billing Target Term</label>
+                    <select name="term" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                        <option value="Term 1, 2026">Term 1, 2026</option>
+                        <option value="Term 2, 2026" selected>Term 2, 2026</option>
+                        <option value="Term 3, 2026">Term 3, 2026</option>
+                    </select>
+                </div>
             </div>
-            <br>
-            <div class="owlio-form-group">
-                <label class="owlio-label">Payment Method</label>
-                <select name="method" class="owlio-select">
-                    <option value="Cash">Cash</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="Mobile Money">Mobile Money</option>
-                </select>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Amount Collected (ZMW)</label>
+                <input type="number" name="amount" step="0.01" placeholder="e.g. 2500.00" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
             </div>
-            <button type="submit" class="owlio-btn" style="width: 100%; margin-top: 20px;">Post Payment</button>
+
+            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3 px-4 rounded-xl text-sm shadow-md transition-all mt-4">
+                Post Payment Reference
+            </button>
         </form>
     </div>
-
-    <div class="owlio-card" style="padding: 0;">
-        <div class="owlio-header" style="padding: 20px;"><h3 class="owlio-title">Recent Income</h3></div>
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead style="background: #f8fafc;">
-                <tr>
-                    <th style="padding: 15px; text-align: left; font-size: 0.75rem;">DATE</th>
-                    <th style="padding: 15px; text-align: left; font-size: 0.75rem;">STUDENT</th>
-                    <th style="padding: 15px; text-align: left; font-size: 0.75rem;">AMOUNT</th>
-                    <th style="padding: 15px; text-align: left; font-size: 0.75rem;">METHOD</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for fee in fees %}
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 15px; font-size: 0.85rem;">{{ fee.date.strftime('%d %b') }}</td>
-                    <td style="padding: 15px; font-weight: 600;">{{ fee.student.first_name }}</td>
-                    <td style="padding: 15px; color: #166534; font-weight: 700;">K {{ fee.amount }}</td>
-                    <td style="padding: 15px;"><span class="status-badge active">{{ fee.method }}</span></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
 </div>
+
+<script>
+    function openModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.remove('hidden');
+    }
+    function closeModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.add('hidden');
+    }
+</script>
 {% endblock %}
