@@ -1205,9 +1205,15 @@ def suggest_comment(student_id):
 def enroll_student():
     if not restrict_access(['admin', 'staff']): return redirect(url_for('parent_portal'))
     if request.method == 'POST':
-        # Convert string date from form to Python date object
-        dob_obj = datetime.strptime(request.form['dob'], '%Y-%m-%d').date()
-        
+        # Safely convert string date from form to Python date object
+        dob_str = request.form.get('dob')
+        dob_obj = None
+        if dob_str:
+            try:
+                dob_obj = datetime.strptime(dob_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+                
         # Handle profile picture upload
         profile_pic_filename = 'default.png'
         if 'profile_pic' in request.files:
@@ -1220,18 +1226,23 @@ def enroll_student():
                 profile_pic_filename = unique_filename
                 
         new_student = Student(
-            first_name=request.form['first_name'],
-            last_name=request.form['last_name'],
+            first_name=request.form.get('first_name', ''),
+            last_name=request.form.get('last_name', ''),
             dob=dob_obj,
-            class_id=request.form['class_id'],
-            pickup_auth=request.form['pickup_auth'],
-            tuition_fee=request.form.get('tuition_fee', 5000),
+            class_id=request.form.get('class_id') or None,
+            pickup_auth=request.form.get('pickup_auth', ''),
+            tuition_fee=request.form.get('tuition_fee', type=float) or 5000.0,
             profile_pic=profile_pic_filename
         )
-        db.session.add(new_student)
-        db.session.commit()
-        flash('Student enrollment successful.', 'success')
-        return redirect(url_for('dashboard'))
+        try:
+            db.session.add(new_student)
+            db.session.commit()
+            flash('Student enrollment successful.', 'success')
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Database error during enrollment: {str(e)}", "danger")
+            return redirect(url_for('enroll_student'))
     return render_template('people/add_student.html', environments=Environment.query.all())
 
 
