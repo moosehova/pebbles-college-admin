@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+    <div>
+        <h2 class="page-title"><i class="fas fa-user-plus"></i> Admissions Dashboard</h2>
+        <p class="page-subtitle">Review online applications from prospective parents.</p>
+    </div>
+    <a href="{{ url_for('admissions_apply') }}" target="_blank" class="owlio-btn" style="text-decoration:none;border:none;background:#f1f5f9;color:#475569;">
+        <i class="fas fa-external-link-alt"></i> View Public Form
+    </a>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;">
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #f59e0b;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#d97706;">{{ pending|length }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Pending Review</div></div>
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #3b82f6;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#1d4ed8;">{{ interview|length }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Interview Stage</div></div>
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #10b981;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#047857;">{{ approved|length }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Approved</div></div>
+</div>
+
+<div class="owlio-card" style="padding:0;overflow:hidden;">
+    <div class="owlio-header" style="padding:16px 24px;"><h3 class="owlio-title"><i class="fas fa-inbox"></i> Application Pipeline</h3></div>
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f8fafc;">
+                <tr>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Applicant Name</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Applying For</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Parent Details</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Date Applied</th>
+                    <th style="padding:12px 20px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Status</th>
+                    <th style="padding:12px 20px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in applications %}
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:14px 20px;">
+                        <div style="font-weight:700;color:#1e293b;">{{ app.first_name }} {{ app.last_name }}</div>
+                        <div style="font-size:0.7rem;color:#64748b;">DOB: {{ app.date_of_birth.strftime('%d %b %Y') if app.date_of_birth else 'N/A' }}</div>
+                    </td>
+                    <td style="padding:14px 20px;font-weight:700;color:#0f172a;">{{ app.grade_applying }}</td>
+                    <td style="padding:14px 20px;">
+                        <div style="font-size:0.8rem;color:#1e293b;"><i class="fas fa-user-circle"></i> {{ app.parent_name }}</div>
+                        <div style="font-size:0.75rem;color:#64748b;"><i class="fas fa-phone"></i> {{ app.parent_phone }}</div>
+                    </td>
+                    <td style="padding:14px 20px;font-size:0.8rem;color:#475569;">{{ app.submitted_at.strftime('%d %b %Y') }}</td>
+                    <td style="padding:14px 20px;text-align:center;">
+                        {% if app.status == 'Pending' %}
+                            <span style="background:#fef3c7;color:#d97706;padding:4px 10px;border-radius:999px;font-size:0.75rem;font-weight:700;">Pending</span>
+                        {% elif app.status == 'Interview' %}
+                            <span style="background:#dbeafe;color:#1d4ed8;padding:4px 10px;border-radius:999px;font-size:0.75rem;font-weight:700;">Interview</span>
+                        {% elif app.status == 'Approved' %}
+                            <span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:0.75rem;font-weight:700;">Approved</span>
+                        {% else %}
+                            <span style="background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:999px;font-size:0.75rem;font-weight:700;">Rejected</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:14px 20px;text-align:center;">
+                        <button onclick="document.getElementById('reviewModal-{{ app.id }}').style.display='flex'" class="owlio-btn" style="border:none;font-size:0.75rem;padding:6px 12px;background:#f1f5f9;color:#0f172a;"><i class="fas fa-search"></i> Review</button>
+                    </td>
+                </tr>
+
+                <!-- Review Modal -->
+                <div id="reviewModal-{{ app.id }}" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;text-align:left;">
+                    <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:500px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                            <h3 style="margin:0;color:#1e293b;font-weight:800;">Review Application</h3>
+                            <button onclick="document.getElementById('reviewModal-{{ app.id }}').style.display='none'" style="background:none;border:none;font-size:1.4rem;color:#94a3b8;cursor:pointer;">&times;</button>
+                        </div>
+                        <div style="background:#f8fafc;padding:16px;border-radius:8px;margin-bottom:20px;font-size:0.85rem;">
+                            <p style="margin:0 0 8px;"><strong>Student:</strong> {{ app.first_name }} {{ app.last_name }}</p>
+                            <p style="margin:0 0 8px;"><strong>Applying For:</strong> {{ app.grade_applying }}</p>
+                            <p style="margin:0 0 8px;"><strong>Previous School:</strong> {{ app.previous_school or 'None' }}</p>
+                            <p style="margin:0 0 8px;"><strong>Parent:</strong> {{ app.parent_name }} ({{ app.parent_phone }})</p>
+                        </div>
+                        <form action="{{ url_for('review_application', app_id=app.id) }}" method="POST">
+                            <div style="margin-bottom:16px;">
+                                <label class="owlio-label">Update Status *</label>
+                                <select name="status" class="owlio-select" required>
+                                    <option value="Pending" {% if app.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Interview" {% if app.status == 'Interview' %}selected{% endif %}>Interview / Assessment</option>
+                                    <option value="Approved" {% if app.status == 'Approved' %}selected{% endif %}>Approved for Enrollment</option>
+                                    <option value="Rejected" {% if app.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                                </select>
+                            </div>
+                            <div style="margin-bottom:20px;">
+                                <label class="owlio-label">Admin Notes</label>
+                                <textarea name="notes" class="owlio-input" rows="3" placeholder="Add internal notes about this applicant...">{{ app.notes or '' }}</textarea>
+                            </div>
+                            <button type="submit" class="owlio-btn" style="width:100%;border:none;"><i class="fas fa-save"></i> Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <tr><td colspan="6" style="padding:40px;text-align:center;color:#94a3b8;">No applications found in the system.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

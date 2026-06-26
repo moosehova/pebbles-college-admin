@@ -1,0 +1,122 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+    <div>
+        <h2 class="page-title"><i class="fas fa-id-badge"></i> Visitor Management</h2>
+        <p class="page-subtitle">Sign in guests, track active visitors, and monitor campus security.</p>
+    </div>
+    <button onclick="document.getElementById('signInModal').style.display='flex'" class="owlio-btn" style="border:none;background:#4f46e5;"><i class="fas fa-sign-in-alt"></i> Sign In Visitor</button>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;">
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #10b981;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#047857;">{{ active_visitors|length }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Active on Campus</div></div>
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #3b82f6;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#1d4ed8;">{{ todays_all|length }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Total Today</div></div>
+</div>
+
+<div class="owlio-card" style="padding:0;overflow:hidden;margin-bottom:24px;">
+    <div class="owlio-header" style="padding:16px 24px;"><h3 class="owlio-title"><i class="fas fa-walking"></i> Active Visitors (Not Checked Out)</h3></div>
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f8fafc;">
+                <tr>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Visitor & Badge</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Purpose & Host</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Time In</th>
+                    <th style="padding:12px 20px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in active_visitors %}
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:14px 20px;">
+                        <div style="font-weight:800;color:#1e293b;font-size:0.9rem;">{{ v.visitor_name }}</div>
+                        <div style="font-size:0.75rem;color:#64748b;"><i class="fas fa-phone"></i> {{ v.phone or 'No phone' }}</div>
+                        <div style="margin-top:4px;"><span style="background:#4f46e5;color:white;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:800;letter-spacing:1px;">{{ v.badge_number }}</span></div>
+                    </td>
+                    <td style="padding:14px 20px;font-size:0.85rem;color:#475569;">
+                        <strong>Purpose:</strong> {{ v.purpose }}<br>
+                        <strong>Host:</strong> {{ v.host_name or 'General Inquiry' }} ({{ v.host_department or 'N/A' }})
+                    </td>
+                    <td style="padding:14px 20px;font-size:0.85rem;color:#0f172a;font-weight:700;">{{ v.sign_in_time.strftime('%H:%M') }}</td>
+                    <td style="padding:14px 20px;text-align:center;">
+                        <form action="{{ url_for('visitor_signout', visitor_id=v.id) }}" method="POST" style="margin:0;">
+                            <button type="submit" class="owlio-btn" style="background:#fef2f2;color:#dc2626;border:none;font-size:0.75rem;padding:6px 12px;"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="padding:40px;text-align:center;color:#94a3b8;">No active visitors on campus.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="owlio-card" style="padding:0;overflow:hidden;">
+    <div class="owlio-header" style="padding:16px 24px;"><h3 class="owlio-title"><i class="fas fa-history"></i> Recent Visitor Log</h3></div>
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f8fafc;">
+                <tr>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Date</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Visitor & Badge</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Purpose</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Time In</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Time Out</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in recent %}
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:14px 20px;font-size:0.8rem;color:#475569;">{{ v.sign_in_time.strftime('%d %b %Y') }}</td>
+                    <td style="padding:14px 20px;font-size:0.85rem;">
+                        <span style="font-weight:700;color:#1e293b;">{{ v.visitor_name }}</span> 
+                        <span style="color:#94a3b8;font-size:0.75rem;">({{ v.badge_number }})</span>
+                    </td>
+                    <td style="padding:14px 20px;font-size:0.8rem;color:#475569;">{{ v.purpose }}</td>
+                    <td style="padding:14px 20px;font-size:0.8rem;color:#10b981;font-weight:700;">{{ v.sign_in_time.strftime('%H:%M') }}</td>
+                    <td style="padding:14px 20px;font-size:0.8rem;color:{{ '#64748b' if v.sign_out_time else '#ef4444' }};font-weight:700;">
+                        {{ v.sign_out_time.strftime('%H:%M') if v.sign_out_time else 'Active' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Sign In Modal -->
+<div id="signInModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:500px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#4f46e5;font-weight:800;"><i class="fas fa-sign-in-alt"></i> Visitor Sign-In</h3><button onclick="document.getElementById('signInModal').style.display='none'" style="background:none;border:none;font-size:1.4rem;color:#94a3b8;cursor:pointer;">&times;</button></div>
+        <form action="{{ url_for('visitor_signin') }}" method="POST">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                <div><label class="owlio-label">Full Name *</label><input type="text" name="visitor_name" class="owlio-input" required placeholder="e.g. John Doe"></div>
+                <div><label class="owlio-label">Phone Number</label><input type="text" name="phone" class="owlio-input" placeholder="e.g. 0970000000"></div>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">ID / NRC / Passport</label>
+                <input type="text" name="visitor_id_number" class="owlio-input" placeholder="Optional ID number">
+            </div>
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Purpose of Visit *</label>
+                <input type="text" name="purpose" class="owlio-input" required placeholder="e.g. Parent meeting, delivery, inquiry">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+                <div><label class="owlio-label">Host Name</label><input type="text" name="host_name" class="owlio-input" placeholder="Who are they seeing?"></div>
+                <div>
+                    <label class="owlio-label">Host Department</label>
+                    <select name="host_department" class="owlio-select">
+                        <option value="Administration">Administration</option>
+                        <option value="Academic">Academic</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Hostel">Hostel</option>
+                        <option value="General">General</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;"><button type="submit" class="owlio-btn" style="flex:1;border:none;background:#4f46e5;"><i class="fas fa-check-circle"></i> Grant Access</button><button type="button" onclick="document.getElementById('signInModal').style.display='none'" class="owlio-btn" style="background:#f1f5f9;color:#475569;border:none;">Cancel</button></div>
+        </form>
+    </div>
+</div>
+{% endblock %}

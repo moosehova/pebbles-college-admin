@@ -1,0 +1,151 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+    <div>
+        <h2 class="page-title"><i class="fas fa-gavel"></i> Discipline &amp; Behaviour</h2>
+        <p class="page-subtitle">Track student conduct, log merits/demerits, and notify parents.</p>
+    </div>
+    <button onclick="document.getElementById('logIncidentModal').style.display='flex'" class="owlio-btn" style="border:none;background:#dc2626;"><i class="fas fa-exclamation-triangle"></i> Log Incident / Demerit</button>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;margin-bottom:28px;">
+    <!-- Top Offenders -->
+    <div class="owlio-card" style="border-top:4px solid #ef4444;">
+        <h4 style="color:#991b1b;font-weight:800;margin-bottom:12px;font-size:0.85rem;"><i class="fas fa-user-times"></i> Most Demerits</h4>
+        {% for offender in top_offenders %}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #fef2f2;">
+            <div style="font-size:0.8rem;font-weight:700;color:#1e293b;">{{ offender.student.first_name }} {{ offender.student.last_name }}</div>
+            <div style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:999px;font-size:0.7rem;font-weight:800;">{{ offender.count }}</div>
+        </div>
+        {% else %}
+        <p style="font-size:0.8rem;color:#94a3b8;">No demerits recorded.</p>
+        {% endfor %}
+    </div>
+    
+    <!-- Top Achievers -->
+    <div class="owlio-card" style="border-top:4px solid #10b981;">
+        <h4 style="color:#065f46;font-weight:800;margin-bottom:12px;font-size:0.85rem;"><i class="fas fa-star"></i> Top Achievers (Merits)</h4>
+        {% for achiever in top_achievers %}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0fdf4;">
+            <div style="font-size:0.8rem;font-weight:700;color:#1e293b;">{{ achiever.student.first_name }} {{ achiever.student.last_name }}</div>
+            <div style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px;font-size:0.7rem;font-weight:800;">{{ achiever.count }}</div>
+        </div>
+        {% else %}
+        <p style="font-size:0.8rem;color:#94a3b8;">No merits recorded.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="owlio-card" style="padding:0;overflow:hidden;">
+    <div class="owlio-header" style="padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
+        <h3 class="owlio-title"><i class="fas fa-list"></i> Full Behaviour Log</h3>
+        <button onclick="document.getElementById('logMeritModal').style.display='flex'" class="owlio-btn" style="border:none;font-size:0.75rem;padding:6px 12px;background:#10b981;"><i class="fas fa-award"></i> Award Merit</button>
+    </div>
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f8fafc;">
+                <tr>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Date</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Student</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Type</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Category</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in all_logs %}
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:14px 20px;font-size:0.8rem;color:#475569;">{{ log.timestamp.strftime('%d %b %Y %H:%M') }}</td>
+                    <td style="padding:14px 20px;font-weight:700;color:#1e293b;">{{ log.student.first_name }} {{ log.student.last_name }}</td>
+                    <td style="padding:14px 20px;">
+                        {% if log.type == 'Merit' %}
+                            <span style="background:#dcfce7;color:#166534;padding:3px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;"><i class="fas fa-arrow-up"></i> Merit</span>
+                        {% else %}
+                            <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;"><i class="fas fa-arrow-down"></i> Demerit</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:14px 20px;font-size:0.8rem;color:#475569;font-weight:600;">{{ log.category }}</td>
+                    <td style="padding:14px 20px;font-size:0.8rem;color:#64748b;max-width:300px;">{{ log.note }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="padding:40px;text-align:center;color:#94a3b8;">No behaviour records found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Log Demerit Modal -->
+<div id="logIncidentModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:500px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#991b1b;font-weight:800;"><i class="fas fa-exclamation-triangle"></i> Log Demerit</h3><button onclick="document.getElementById('logIncidentModal').style.display='none'" style="background:none;border:none;font-size:1.4rem;color:#94a3b8;cursor:pointer;">&times;</button></div>
+        <form action="{{ url_for('log_discipline') }}" method="POST">
+            <input type="hidden" name="log_type" value="Demerit">
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Select Student *</label>
+                <select name="student_id" class="owlio-select" required>
+                    <option value="">Search student...</option>
+                    {% for s in students %}<option value="{{ s.id }}">{{ s.first_name }} {{ s.last_name }} ({{ s.classroom.name if s.classroom else 'No Class' }})</option>{% endfor %}
+                </select>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Category *</label>
+                <select name="category" class="owlio-select" required>
+                    <option value="Late Coming">Late Coming</option>
+                    <option value="Disruptive Behavior">Disruptive Behavior</option>
+                    <option value="Dress Code Violation">Dress Code Violation</option>
+                    <option value="Incomplete Homework">Incomplete Homework</option>
+                    <option value="Bullying / Harassment">Bullying / Harassment</option>
+                    <option value="Truancy">Truancy</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Incident Details / Notes *</label>
+                <textarea name="note" class="owlio-input" rows="3" required placeholder="Describe what happened..."></textarea>
+            </div>
+            <div style="margin-bottom:24px;background:#fef2f2;padding:12px;border-radius:8px;border:1px solid #fecaca;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;color:#991b1b;font-weight:700;font-size:0.85rem;">
+                    <input type="checkbox" name="send_sms" checked style="accent-color:#dc2626;width:16px;height:16px;">
+                    Send Auto-SMS to Parent
+                </label>
+                <div style="font-size:0.7rem;color:#b91c1c;margin-left:26px;margin-top:4px;">Parent will receive an instant Twilio SMS notification.</div>
+            </div>
+            <div style="display:flex;gap:10px;"><button type="submit" class="owlio-btn" style="flex:1;border:none;background:#dc2626;"><i class="fas fa-save"></i> Save Demerit</button><button type="button" onclick="document.getElementById('logIncidentModal').style.display='none'" class="owlio-btn" style="background:#f1f5f9;color:#475569;border:none;">Cancel</button></div>
+        </form>
+    </div>
+</div>
+
+<!-- Log Merit Modal -->
+<div id="logMeritModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:500px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#065f46;font-weight:800;"><i class="fas fa-award"></i> Award Merit</h3><button onclick="document.getElementById('logMeritModal').style.display='none'" style="background:none;border:none;font-size:1.4rem;color:#94a3b8;cursor:pointer;">&times;</button></div>
+        <form action="{{ url_for('log_discipline') }}" method="POST">
+            <input type="hidden" name="log_type" value="Merit">
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Select Student *</label>
+                <select name="student_id" class="owlio-select" required>
+                    <option value="">Search student...</option>
+                    {% for s in students %}<option value="{{ s.id }}">{{ s.first_name }} {{ s.last_name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Category *</label>
+                <select name="category" class="owlio-select" required>
+                    <option value="Academic Excellence">Academic Excellence</option>
+                    <option value="Outstanding Leadership">Outstanding Leadership</option>
+                    <option value="Helping Others">Helping Others</option>
+                    <option value="Perfect Attendance">Perfect Attendance</option>
+                    <option value="Sports Achievement">Sports Achievement</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div style="margin-bottom:24px;">
+                <label class="owlio-label">Details / Notes</label>
+                <textarea name="note" class="owlio-input" rows="3" placeholder="Briefly describe the achievement..."></textarea>
+            </div>
+            <div style="display:flex;gap:10px;"><button type="submit" class="owlio-btn" style="flex:1;border:none;background:#10b981;"><i class="fas fa-save"></i> Award Merit</button><button type="button" onclick="document.getElementById('logMeritModal').style.display='none'" class="owlio-btn" style="background:#f1f5f9;color:#475569;border:none;">Cancel</button></div>
+        </form>
+    </div>
+</div>
+{% endblock %}

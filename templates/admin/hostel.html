@@ -1,0 +1,131 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+    <div>
+        <h2 class="page-title"><i class="fas fa-bed"></i> Hostel Management</h2>
+        <p class="page-subtitle">Manage dormitory rooms, assign students, and track occupancy.</p>
+    </div>
+    <button onclick="document.getElementById('addRoomModal').style.display='flex'" class="owlio-btn" style="border:none;"><i class="fas fa-plus"></i> Add Room</button>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;">
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #1e3a8a;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#1e3a8a;">{{ rooms|length }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Total Rooms</div></div>
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #10b981;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#047857;">{{ total_capacity }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Total Beds</div></div>
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #f59e0b;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#d97706;">{{ total_occupied }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Beds Occupied</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;align-items:start;">
+    
+    <!-- Room Register -->
+    <div class="owlio-card" style="padding:0;overflow:hidden;">
+        <div class="owlio-header" style="padding:16px 24px;"><h3 class="owlio-title"><i class="fas fa-door-closed"></i> Room Register</h3></div>
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead style="background:#f8fafc;">
+                    <tr>
+                        <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Room</th>
+                        <th style="padding:12px 20px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Occupancy</th>
+                        <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Occupants</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for room in rooms %}
+                    {% set active = room.assignments|selectattr('status','equalto','Active')|list %}
+                    {% set occ_pct = (active|length / room.capacity * 100) if room.capacity > 0 else 0 %}
+                    <tr style="border-bottom:1px solid #f1f5f9;vertical-align:top;">
+                        <td style="padding:14px 20px;">
+                            <div style="font-weight:800;color:#1e293b;font-size:0.95rem;">{{ room.room_number }}</div>
+                            <div style="font-size:0.75rem;color:#64748b;font-weight:700;">{{ room.block or 'Main Block' }}</div>
+                            <div style="font-size:0.65rem;color:#94a3b8;margin-top:2px;text-transform:uppercase;">{{ room.room_type }}</div>
+                        </td>
+                        <td style="padding:14px 20px;text-align:center;">
+                            <div style="font-weight:800;color:{{ '#dc2626' if occ_pct >= 100 else '#1e40af' }};font-size:0.9rem;">
+                                {{ active|length }} / {{ room.capacity }}
+                            </div>
+                            <div style="width:100%;height:6px;background:#e2e8f0;border-radius:3px;margin-top:6px;overflow:hidden;">
+                                <div style="width:{{ occ_pct }}%;height:100%;background:{{ '#ef4444' if occ_pct >= 100 else '#3b82f6' }};"></div>
+                            </div>
+                        </td>
+                        <td style="padding:14px 20px;">
+                            {% for a in active %}
+                            <div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:6px 10px;border-radius:6px;border:1px solid #e2e8f0;margin-bottom:6px;">
+                                <div style="font-size:0.75rem;font-weight:700;color:#475569;">{{ a.student.first_name }} {{ a.student.last_name }}</div>
+                                <form action="{{ url_for('hostel_checkout', assignment_id=a.id) }}" method="POST" style="margin:0;">
+                                    <button type="submit" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.7rem;" title="Check Out"><i class="fas fa-sign-out-alt"></i></button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <div style="font-size:0.75rem;color:#94a3b8;font-style:italic;">Empty Room</div>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" style="padding:40px;text-align:center;color:#94a3b8;">No rooms added to the hostel yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Assign Student -->
+    <div class="owlio-card" style="border-top:4px solid #10b981;">
+        <h3 style="font-weight:800;color:#065f46;margin-bottom:20px;font-size:0.95rem;"><i class="fas fa-user-plus"></i> Assign Student to Room</h3>
+        <form action="{{ url_for('hostel_assign') }}" method="POST">
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Select Student *</label>
+                <select name="student_id" class="owlio-select" required>
+                    <option value="">Search student (unassigned)...</option>
+                    {% for s in students_without_room %}
+                    <option value="{{ s.id }}">{{ s.first_name }} {{ s.last_name }}</option>
+                    {% endfor %}
+                </select>
+                <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">Only students currently NOT in a room are listed.</div>
+            </div>
+            <div style="margin-bottom:20px;">
+                <label class="owlio-label">Select Room *</label>
+                <select name="room_id" class="owlio-select" required>
+                    <option value="">Choose room...</option>
+                    {% for r in rooms %}
+                    {% set act = r.assignments|selectattr('status','equalto','Active')|list|length %}
+                    {% if act < r.capacity %}
+                    <option value="{{ r.id }}">{{ r.room_number }} ({{ r.block }}) — {{ r.capacity - act }} beds free</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="owlio-btn" style="width:100%;border:none;background:#10b981;"><i class="fas fa-check"></i> Assign to Room</button>
+        </form>
+    </div>
+</div>
+
+<!-- Add Room Modal -->
+<div id="addRoomModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:400px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#1e293b;font-weight:800;">Add Hostel Room</h3><button onclick="document.getElementById('addRoomModal').style.display='none'" style="background:none;border:none;font-size:1.4rem;color:#94a3b8;cursor:pointer;">&times;</button></div>
+        <form action="{{ url_for('add_hostel_room') }}" method="POST">
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Room Number / Name *</label>
+                <input type="text" name="room_number" class="owlio-input" required placeholder="e.g. 101, A12">
+            </div>
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Building / Block</label>
+                <input type="text" name="block" class="owlio-input" placeholder="e.g. Boys Wing">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+                <div>
+                    <label class="owlio-label">Type</label>
+                    <select name="room_type" class="owlio-select">
+                        <option value="Dormitory">Dormitory</option>
+                        <option value="Private">Private</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="owlio-label">Capacity *</label>
+                    <input type="number" name="capacity" class="owlio-input" value="4" min="1" required>
+                </div>
+            </div>
+            <button type="submit" class="owlio-btn" style="width:100%;border:none;"><i class="fas fa-save"></i> Save Room</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

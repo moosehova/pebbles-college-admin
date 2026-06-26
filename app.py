@@ -18,7 +18,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution, StaffAttendance, LeaveRequest, CoCurricularBooking, InvoiceLineItem, InstallmentPlan, PayrollPeriod, Payslip, Examination, ExamResult, AcademicReportCard, ClassSchedule, ClassroomLessonCheckIn, TransportRoute, RouteAssignment
+from models import db, User, Student, Environment, Attendance, Observation, Income, Expense, Inventory, Staff, PayrollRecord, Message, AttendanceIntervention, Grade, BehaviorLog, SchoolSettings, SchoolEvent, EventAttendance, Book, BookLoan, Vehicle, VehicleMaintenanceLog, Equipment, BuildingMaintenance, UniformItem, UniformVariant, UniformDistribution, StaffAttendance, LeaveRequest, CoCurricularBooking, InvoiceLineItem, InstallmentPlan, PayrollPeriod, Payslip, Examination, ExamResult, AcademicReportCard, ClassSchedule, ClassroomLessonCheckIn, TransportRoute, RouteAssignment, HostelRoom, HostelAssignment, MedicalRecord, ClinicVisit, VisitorLog, AdmissionApplication
+
 
 # ------------------- APP INITIALIZATION -------------------
 app = Flask(__name__)
@@ -4038,12 +4039,421 @@ def send_attendance_sms():
 
 
 # ====================================================================
-# STUDENT PORTAL LOGIN ROUTING - update login to handle 'student' role
+# EXAMINATIONS MODULE
 # ====================================================================
+@app.route('/examinations')
+@login_required
+def examinations_hub():
+    if not restrict_access(['admin', 'staff']):
+        return redirect(url_for('parent_portal'))
+    from models import Examination, ExamResult
+    exams = Examination.query.order_by(Examination.date.desc()).all()
+    levels = Environment.query.order_by(Environment.name).all()
+    today = datetime.utcnow().date()
+    upcoming = [e for e in exams if e.date and e.date >= today]
+    past = [e for e in exams if not e.date or e.date < today]
+    return render_template('admin/examinations.html',
+        exams=exams, levels=levels, upcoming=upcoming, past=past, today=today)
+
+@app.route('/examinations/create', methods=['POST'])
+@login_required
+def create_exam():
+    if not restrict_access(['admin']): return jsonify({"error": "Unauthorized"}), 403
+    from models import Examination
+    try:
+        date_str = request.form.get('exam_date')
+        exam_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else None
+        exam = Examination(
+            title=request.form.get('title', '').strip(),
+            subject=request.form.get('subject', '').strip(),
+            exam_type=request.form.get('exam_type', 'CAT'),
+            level_id=request.form.get('level_id') or None,
+            date=exam_date,
+            total_marks=int(request.form.get('total_marks', 100)),
+            description=request.form.get('description', '').strip()
+        )
+        db.session.add(exam)
+        db.session.commit()
+        flash(f"Exam '{exam.title}' scheduled successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Could not create exam. Check all fields.", "danger")
+    return redirect(url_for('examinations_hub'))
+
+@app.route('/examinations/<int:exam_id>/marks', methods=['GET', 'POST'])
+@login_required
+def exam_marks(exam_id):
+    if not restrict_access(['admin', 'staff']): return redirect(url_for('parent_portal'))
+    from models import Examination, ExamResult
+    exam = Examination.query.get_or_404(exam_id)
+    if request.method == 'POST':
+        try:
+            submitted = 0
+            for key, val in request.form.items():
+                if key.startswith('score_') and val.strip():
+                    sid = int(key.replace('score_', ''))
+                    score = float(val)
+                    existing = ExamResult.query.filter_by(exam_id=exam_id, student_id=sid).first()
+                    if existing:
+                        existing.score = score
+                    else:
+                        db.session.add(ExamResult(exam_id=exam_id, student_id=sid, score=score))
+                    submitted += 1
+            db.session.commit()
+            flash(f"{submitted} mark(s) saved successfully.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash("Error saving marks. Check values and retry.", "danger")
+        return redirect(url_for('exam_marks', exam_id=exam_id))
+
+    # Build student list for this exam's level
+    students = []
+    if exam.level_id:
+        students = Student.query.filter_by(classroom_id=exam.level_id).order_by(Student.last_name).all()
+    else:
+        students = Student.query.order_by(Student.last_name).all()
+
+    # Load existing results
+    results_map = {r.student_id: r for r in ExamResult.query.filter_by(exam_id=exam_id).all()}
+
+    # Calculate rankings
+    ranked = sorted(
+        [(s, results_map.get(s.id)) for s in students if results_map.get(s.id)],
+        key=lambda x: x[1].score, reverse=True
+    )
+    for rank, (s, r) in enumerate(ranked, 1):
+        r.position = rank
+
+    return render_template('admin/exam_marks.html',
+        exam=exam, students=students, results_map=results_map)
+
+
+# ====================================================================
+# DISCIPLINE DASHBOARD
+# ====================================================================
+@app.route('/discipline')
+@login_required
+def discipline_hub():
+    if not restrict_access(['admin', 'staff']): return redirect(url_for('parent_portal'))
+    
+    all_logs = BehaviorLog.query.order_by(BehaviorLog.timestamp.desc()).all()
+    merits = [l for l in all_logs if l.type == 'Merit']
+    demerits = [l for l in all_logs if l.type == 'Demerit']
+    
+    # Top offenders & top achievers
+    from collections import Counter
+    demerit_counts = Counter(l.student_id for l in demerits)
+    merit_counts = Counter(l.student_id for l in merits)
+    
+    top_offenders = []
+    for sid, count in demerit_counts.most_common(5):
+        s = Student.query.get(sid)
+        if s:
+            top_offenders.append({'student': s, 'count': count})
+    
+    top_achievers = []
+    for sid, count in merit_counts.most_common(5):
+        s = Student.query.get(sid)
+        if s:
+            top_achievers.append({'student': s, 'count': count})
+
+    students = Student.query.order_by(Student.first_name).all()
+    return render_template('admin/discipline.html',
+        all_logs=all_logs, merits=merits, demerits=demerits,
+        top_offenders=top_offenders, top_achievers=top_achievers,
+        students=students)
+
+@app.route('/discipline/log', methods=['POST'])
+@login_required
+def log_discipline():
+    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    try:
+        student_id = int(request.form.get('student_id'))
+        log_type = request.form.get('log_type', 'Demerit')
+        category = request.form.get('category', 'General')
+        note = request.form.get('note', '').strip()
+        send_sms = request.form.get('send_sms') == 'on'
+        
+        log = BehaviorLog(
+            student_id=student_id,
+            type=log_type,
+            category=category,
+            note=note,
+            timestamp=datetime.utcnow()
+        )
+        db.session.add(log)
+        db.session.commit()
+        
+        if send_sms and log_type == 'Demerit':
+            student = Student.query.get(student_id)
+            if student and student.parent_phone:
+                msg = (f"Dear Parent, a discipline record has been logged for "
+                       f"{student.first_name} {student.last_name}: {category} — {note}. "
+                       f"Please contact the school for more information. - Pebbles College")
+                send_direct_sms(student.parent_phone, msg)
+        
+        flash(f"{log_type} logged successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash("Failed to log record. Please try again.", "danger")
+    return redirect(url_for('discipline_hub'))
+
+
+# ====================================================================
+# ONLINE ADMISSIONS
+# ====================================================================
+@app.route('/admissions')
+@login_required
+def admissions_dashboard():
+    if not restrict_access(['admin']): return redirect(url_for('parent_portal'))
+    from models import AdmissionApplication
+    applications = AdmissionApplication.query.order_by(AdmissionApplication.submitted_at.desc()).all()
+    pending = [a for a in applications if a.status == 'Pending']
+    interview = [a for a in applications if a.status == 'Interview']
+    approved = [a for a in applications if a.status == 'Approved']
+    rejected = [a for a in applications if a.status == 'Rejected']
+    return render_template('admissions/dashboard.html',
+        applications=applications, pending=pending, interview=interview,
+        approved=approved, rejected=rejected)
+
+@app.route('/admissions/apply', methods=['GET', 'POST'])
+def admissions_apply():
+    """Public route — no login required."""
+    from models import AdmissionApplication
+    if request.method == 'POST':
+        try:
+            dob_str = request.form.get('date_of_birth', '')
+            dob = datetime.strptime(dob_str, '%Y-%m-%d').date() if dob_str else None
+            app_obj = AdmissionApplication(
+                first_name=request.form.get('first_name', '').strip(),
+                last_name=request.form.get('last_name', '').strip(),
+                date_of_birth=dob,
+                gender=request.form.get('gender'),
+                grade_applying=request.form.get('grade_applying', '').strip(),
+                previous_school=request.form.get('previous_school', '').strip(),
+                parent_name=request.form.get('parent_name', '').strip(),
+                parent_phone=request.form.get('parent_phone', '').strip(),
+                parent_email=request.form.get('parent_email', '').strip(),
+                parent_address=request.form.get('parent_address', '').strip()
+            )
+            db.session.add(app_obj)
+            db.session.commit()
+            return render_template('admissions/apply.html', submitted=True,
+                                   applicant_name=f"{app_obj.first_name} {app_obj.last_name}")
+        except Exception as e:
+            db.session.rollback()
+            flash("Submission failed. Please check all required fields.", "danger")
+    return render_template('admissions/apply.html', submitted=False)
+
+@app.route('/admissions/<int:app_id>/review', methods=['POST'])
+@login_required
+def review_application(app_id):
+    if not restrict_access(['admin']): return jsonify({"error": "Unauthorized"}), 403
+    from models import AdmissionApplication
+    application = AdmissionApplication.query.get_or_404(app_id)
+    new_status = request.form.get('status')
+    notes = request.form.get('notes', '').strip()
+    if new_status in ['Pending', 'Interview', 'Approved', 'Rejected']:
+        application.status = new_status
+        application.notes = notes
+        application.reviewed_by = current_user.id
+        db.session.commit()
+        flash(f"Application for {application.first_name} {application.last_name} marked as {new_status}.", "success")
+    return redirect(url_for('admissions_dashboard'))
+
+
+# ====================================================================
+# HOSTEL MANAGEMENT
+# ====================================================================
+@app.route('/hostel')
+@login_required
+def hostel_hub():
+    if not restrict_access(['admin', 'staff']): return redirect(url_for('parent_portal'))
+    from models import HostelRoom, HostelAssignment
+    rooms = HostelRoom.query.order_by(HostelRoom.block, HostelRoom.room_number).all()
+    students_without_room = Student.query.filter(
+        ~Student.id.in_(
+            db.session.query(HostelAssignment.student_id).filter_by(status='Active')
+        )
+    ).order_by(Student.first_name).all()
+    
+    total_capacity = sum(r.capacity for r in rooms)
+    total_occupied = sum(len([a for a in r.assignments if a.status == 'Active']) for r in rooms)
+    
+    return render_template('admin/hostel.html',
+        rooms=rooms, students_without_room=students_without_room,
+        total_capacity=total_capacity, total_occupied=total_occupied)
+
+@app.route('/hostel/room/add', methods=['POST'])
+@login_required
+def add_hostel_room():
+    if not restrict_access(['admin']): return jsonify({"error": "Unauthorized"}), 403
+    from models import HostelRoom
+    try:
+        room = HostelRoom(
+            room_number=request.form.get('room_number', '').strip(),
+            block=request.form.get('block', '').strip(),
+            room_type=request.form.get('room_type', 'Dormitory'),
+            capacity=int(request.form.get('capacity', 4)),
+            monthly_fee=float(request.form.get('monthly_fee', 0))
+        )
+        db.session.add(room)
+        db.session.commit()
+        flash(f"Room {room.room_number} added successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash("Could not add room. Room number may already exist.", "danger")
+    return redirect(url_for('hostel_hub'))
+
+@app.route('/hostel/assign', methods=['POST'])
+@login_required
+def hostel_assign():
+    if not restrict_access(['admin']): return jsonify({"error": "Unauthorized"}), 403
+    from models import HostelRoom, HostelAssignment
+    try:
+        room_id = int(request.form.get('room_id'))
+        student_id = int(request.form.get('student_id'))
+        room = HostelRoom.query.get_or_404(room_id)
+        active = [a for a in room.assignments if a.status == 'Active']
+        if len(active) >= room.capacity:
+            flash("This room is at full capacity.", "danger")
+            return redirect(url_for('hostel_hub'))
+        existing = HostelAssignment.query.filter_by(student_id=student_id, status='Active').first()
+        if existing:
+            existing.status = 'Checked Out'
+            existing.check_out_date = datetime.utcnow().date()
+        assignment = HostelAssignment(
+            room_id=room_id, student_id=student_id,
+            check_in_date=datetime.utcnow().date(), status='Active'
+        )
+        db.session.add(assignment)
+        db.session.commit()
+        flash("Student assigned to hostel room.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash("Assignment failed. Please try again.", "danger")
+    return redirect(url_for('hostel_hub'))
+
+@app.route('/hostel/checkout/<int:assignment_id>', methods=['POST'])
+@login_required
+def hostel_checkout(assignment_id):
+    if not restrict_access(['admin']): return jsonify({"error": "Unauthorized"}), 403
+    from models import HostelAssignment
+    assignment = HostelAssignment.query.get_or_404(assignment_id)
+    assignment.status = 'Checked Out'
+    assignment.check_out_date = datetime.utcnow().date()
+    db.session.commit()
+    flash("Student checked out of hostel.", "success")
+    return redirect(url_for('hostel_hub'))
+
+
+# ====================================================================
+# CLINIC & MEDICAL RECORDS
+# ====================================================================
+@app.route('/clinic')
+@login_required
+def clinic_hub():
+    if not restrict_access(['admin', 'staff']): return redirect(url_for('parent_portal'))
+    from models import ClinicVisit, MedicalRecord
+    today = datetime.utcnow().date()
+    todays_visits = ClinicVisit.query.filter(
+        db.func.date(ClinicVisit.visit_date) == today
+    ).order_by(ClinicVisit.visit_date.desc()).all()
+    recent_visits = ClinicVisit.query.order_by(ClinicVisit.visit_date.desc()).limit(20).all()
+    students = Student.query.order_by(Student.first_name).all()
+    referred_today = sum(1 for v in todays_visits if v.referred_to_hospital)
+    return render_template('admin/clinic.html',
+        todays_visits=todays_visits, recent_visits=recent_visits,
+        students=students, referred_today=referred_today, today=today)
+
+@app.route('/clinic/visit/log', methods=['POST'])
+@login_required
+def log_clinic_visit():
+    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    from models import ClinicVisit
+    try:
+        visit = ClinicVisit(
+            student_id=int(request.form.get('student_id')),
+            complaint=request.form.get('complaint', '').strip(),
+            diagnosis=request.form.get('diagnosis', '').strip(),
+            treatment=request.form.get('treatment', '').strip(),
+            medicine_dispensed=request.form.get('medicine_dispensed', '').strip(),
+            referred_to_hospital=request.form.get('referred_to_hospital') == 'on',
+            recorded_by=current_user.id
+        )
+        db.session.add(visit)
+        db.session.commit()
+        flash("Clinic visit recorded successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash("Could not record visit. Please try again.", "danger")
+    return redirect(url_for('clinic_hub'))
+
+
+# ====================================================================
+# VISITOR MANAGEMENT
+# ====================================================================
+@app.route('/visitors')
+@login_required
+def visitors_hub():
+    if not restrict_access(['admin', 'staff']): return redirect(url_for('parent_portal'))
+    from models import VisitorLog
+    today = datetime.utcnow().date()
+    active_visitors = VisitorLog.query.filter(
+        db.func.date(VisitorLog.sign_in_time) == today,
+        VisitorLog.sign_out_time.is_(None)
+    ).order_by(VisitorLog.sign_in_time.desc()).all()
+    todays_all = VisitorLog.query.filter(
+        db.func.date(VisitorLog.sign_in_time) == today
+    ).order_by(VisitorLog.sign_in_time.desc()).all()
+    recent = VisitorLog.query.order_by(VisitorLog.sign_in_time.desc()).limit(30).all()
+    return render_template('admin/visitors.html',
+        active_visitors=active_visitors, todays_all=todays_all,
+        recent=recent, today=today)
+
+@app.route('/visitors/signin', methods=['POST'])
+@login_required
+def visitor_signin():
+    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    from models import VisitorLog
+    try:
+        # Auto-assign badge number
+        last = VisitorLog.query.order_by(VisitorLog.id.desc()).first()
+        badge_num = f"V{(last.id + 1) if last else 1:04d}"
+        visitor = VisitorLog(
+            visitor_name=request.form.get('visitor_name', '').strip(),
+            visitor_id_number=request.form.get('visitor_id_number', '').strip(),
+            phone=request.form.get('phone', '').strip(),
+            purpose=request.form.get('purpose', '').strip(),
+            host_name=request.form.get('host_name', '').strip(),
+            host_department=request.form.get('host_department', '').strip(),
+            badge_number=badge_num,
+            recorded_by=current_user.id
+        )
+        db.session.add(visitor)
+        db.session.commit()
+        flash(f"Visitor signed in. Badge: {badge_num}", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash("Sign-in failed. Please try again.", "danger")
+    return redirect(url_for('visitors_hub'))
+
+@app.route('/visitors/signout/<int:visitor_id>', methods=['POST'])
+@login_required
+def visitor_signout(visitor_id):
+    if not restrict_access(['admin', 'staff']): return jsonify({"error": "Unauthorized"}), 403
+    from models import VisitorLog
+    visitor = VisitorLog.query.get_or_404(visitor_id)
+    visitor.sign_out_time = datetime.utcnow()
+    db.session.commit()
+    flash(f"{visitor.visitor_name} signed out successfully.", "success")
+    return redirect(url_for('visitors_hub'))
+
 
 # ------------------- RUN APP -------------------
 if __name__ == '__main__':
     with app.app_context():
         ensure_database_schema()
     app.run(debug=True)
+
 

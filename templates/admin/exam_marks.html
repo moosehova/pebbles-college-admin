@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+    <div>
+        <a href="{{ url_for('examinations_hub') }}" style="color:#64748b;font-size:0.85rem;text-decoration:none;font-weight:700;"><i class="fas fa-arrow-left"></i> Back to Exams</a>
+        <h2 class="page-title" style="margin-top:8px;"><i class="fas fa-pen"></i> Enter Marks: {{ exam.title }}</h2>
+        <p class="page-subtitle">{{ exam.subject or 'General' }} | {{ exam.exam_type }} | Max Marks: {{ exam.total_marks }}</p>
+    </div>
+</div>
+
+<div class="owlio-card" style="padding:0;overflow:hidden;">
+    <form action="{{ url_for('exam_marks', exam_id=exam.id) }}" method="POST">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f8fafc;">
+                <tr>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Student</th>
+                    <th style="padding:12px 20px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Score (Out of {{ exam.total_marks }})</th>
+                    <th style="padding:12px 20px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Rank / Position</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                {% set result = results_map.get(student.id) %}
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:14px 20px;font-weight:700;color:#1e293b;">
+                        {{ student.first_name }} {{ student.last_name }}
+                        <div style="font-size:0.65rem;color:#64748b;font-weight:400;">ID: {{ student.id }}</div>
+                    </td>
+                    <td style="padding:14px 20px;text-align:center;">
+                        <input type="number" step="0.1" name="score_{{ student.id }}" class="owlio-input" style="width:100px;text-align:center;margin:0 auto;" value="{{ result.score if result else '' }}" min="0" max="{{ exam.total_marks }}">
+                    </td>
+                    <td style="padding:14px 20px;text-align:center;">
+                        {% if result and result.position %}
+                            <span style="background:#dbeafe;color:#1e40af;padding:4px 12px;border-radius:999px;font-size:0.8rem;font-weight:800;">#{{ result.position }}</span>
+                        {% else %}
+                            <span style="color:#94a3b8;font-size:0.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" style="padding:40px;text-align:center;color:#94a3b8;">
+                        No students found for this exam's class level.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if students %}
+        <div style="padding:20px;background:#f8fafc;border-top:1px solid #e2e8f0;text-align:right;">
+            <button type="submit" class="owlio-btn" style="border:none;"><i class="fas fa-save"></i> Save All Marks</button>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

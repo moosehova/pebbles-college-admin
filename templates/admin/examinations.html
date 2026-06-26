@@ -1,0 +1,82 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+    <div>
+        <h2 class="page-title"><i class="fas fa-file-alt"></i> Examinations Hub</h2>
+        <p class="page-subtitle">Schedule exams, enter marks, track rankings and generate report cards.</p>
+    </div>
+    <button onclick="document.getElementById('createExamModal').style.display='flex'" class="owlio-btn" style="border:none;"><i class="fas fa-plus"></i> Schedule New Exam</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;">
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #1e3a8a;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#1e3a8a;">{{ exams|length }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Total Exams</div></div>
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #10b981;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#047857;">{{ upcoming|length }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Upcoming</div></div>
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #f59e0b;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#d97706;">{{ past|length }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Completed</div></div>
+</div>
+{% if upcoming %}
+<div class="owlio-card" style="margin-bottom:24px;padding:0;overflow:hidden;">
+    <div class="owlio-header" style="padding:16px 24px;"><h3 class="owlio-title"><i class="fas fa-clock"></i> Upcoming Examinations</h3></div>
+    <table style="width:100%;border-collapse:collapse;">
+        <thead style="background:#f8fafc;"><tr>
+            <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Exam Title</th>
+            <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Subject</th>
+            <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Type</th>
+            <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Date</th>
+            <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Marks</th>
+            <th style="padding:12px 20px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Action</th>
+        </tr></thead>
+        <tbody>{% for e in upcoming %}<tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:14px 20px;font-weight:700;color:#1e293b;">{{ e.title }}</td>
+            <td style="padding:14px 20px;color:#475569;">{{ e.subject or '—' }}</td>
+            <td style="padding:14px 20px;"><span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;">{{ e.exam_type }}</span></td>
+            <td style="padding:14px 20px;color:#475569;">{{ e.date.strftime('%d %b %Y') if e.date else '—' }}</td>
+            <td style="padding:14px 20px;color:#475569;">{{ e.total_marks }}</td>
+            <td style="padding:14px 20px;text-align:center;"><a href="{{ url_for('exam_marks', exam_id=e.id) }}" class="owlio-btn" style="text-decoration:none;border:none;font-size:0.75rem;padding:6px 12px;"><i class="fas fa-pen"></i> Enter Marks</a></td>
+        </tr>{% endfor %}</tbody>
+    </table>
+</div>
+{% endif %}
+{% if past %}
+<div class="owlio-card" style="padding:0;overflow:hidden;">
+    <div class="owlio-header" style="padding:16px 24px;"><h3 class="owlio-title"><i class="fas fa-check-circle"></i> Completed Examinations</h3></div>
+    <table style="width:100%;border-collapse:collapse;">
+        <thead style="background:#f8fafc;"><tr>
+            <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Exam</th>
+            <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Subject</th>
+            <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Date</th>
+            <th style="padding:12px 20px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Marks Entered</th>
+            <th style="padding:12px 20px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Action</th>
+        </tr></thead>
+        <tbody>{% for e in past %}<tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:14px 20px;font-weight:700;color:#1e293b;">{{ e.title }}</td>
+            <td style="padding:14px 20px;color:#475569;">{{ e.subject or '—' }}</td>
+            <td style="padding:14px 20px;color:#475569;">{{ e.date.strftime('%d %b %Y') if e.date else '—' }}</td>
+            <td style="padding:14px 20px;text-align:center;"><span style="background:#dcfce7;color:#166534;padding:3px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;">{{ e.results|length if e.results else 0 }} results</span></td>
+            <td style="padding:14px 20px;text-align:center;"><a href="{{ url_for('exam_marks', exam_id=e.id) }}" class="owlio-btn" style="text-decoration:none;border:none;font-size:0.75rem;padding:6px 12px;background:#0f766e;"><i class="fas fa-table"></i> View Marks</a></td>
+        </tr>{% endfor %}</tbody>
+    </table>
+</div>
+{% endif %}
+{% if not exams %}<div class="owlio-card" style="text-align:center;padding:60px;"><i class="fas fa-file-alt" style="font-size:3rem;color:#e2e8f0;"></i><p style="color:#94a3b8;margin-top:16px;">No exams scheduled yet. Click "Schedule New Exam" to begin.</p></div>{% endif %}
+
+<div id="createExamModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:540px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#1e293b;font-weight:800;"><i class="fas fa-calendar-plus" style="color:#1e3a8a;"></i> Schedule Exam</h3><button onclick="document.getElementById('createExamModal').style.display='none'" style="background:none;border:none;font-size:1.4rem;color:#94a3b8;cursor:pointer;">&times;</button></div>
+        <form action="{{ url_for('create_exam') }}" method="POST">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                <div><label class="owlio-label">Exam Title *</label><input type="text" name="title" class="owlio-input" placeholder="e.g. Term 2 Mathematics Final" required></div>
+                <div><label class="owlio-label">Subject</label><input type="text" name="subject" class="owlio-input" placeholder="e.g. Mathematics"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                <div><label class="owlio-label">Exam Type *</label><select name="exam_type" class="owlio-select" required><option value="CAT">CAT</option><option value="Midterm">Midterm</option><option value="Final" selected>Final</option><option value="Mock">Mock</option><option value="Cambridge">Cambridge</option><option value="ECZ">ECZ</option></select></div>
+                <div><label class="owlio-label">Class / Level</label><select name="level_id" class="owlio-select"><option value="">All Classes</option>{% for l in levels %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+                <div><label class="owlio-label">Exam Date</label><input type="date" name="exam_date" class="owlio-input"></div>
+                <div><label class="owlio-label">Total Marks</label><input type="number" name="total_marks" class="owlio-input" value="100" min="1" max="1000"></div>
+            </div>
+            <div style="margin-bottom:20px;"><label class="owlio-label">Description / Notes</label><textarea name="description" class="owlio-input" rows="2" placeholder="Optional additional instructions..."></textarea></div>
+            <div style="display:flex;gap:10px;"><button type="submit" class="owlio-btn" style="flex:1;border:none;"><i class="fas fa-save"></i> Schedule Exam</button><button type="button" onclick="document.getElementById('createExamModal').style.display='none'" class="owlio-btn" style="background:#f1f5f9;color:#475569;border:none;">Cancel</button></div>
+        </form>
+    </div>
+</div>
+{% endblock %}

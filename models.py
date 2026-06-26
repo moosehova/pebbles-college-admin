@@ -512,6 +512,7 @@ class TransportRoute(db.Model):
     driver_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=True)
     monthly_fee = db.Column(db.Float, default=0.0)
 
+
 class RouteAssignment(db.Model):
     __tablename__ = 'route_assignments'
     
@@ -519,3 +520,96 @@ class RouteAssignment(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     route_id = db.Column(db.Integer, db.ForeignKey('transport_routes.id'), nullable=False)
     pickup_point = db.Column(db.String(255), nullable=True)
+
+# ====================================================================
+# 5. HOSTEL MANAGEMENT
+# ====================================================================
+class HostelRoom(db.Model):
+    __tablename__ = 'hostel_rooms'
+    id = db.Column(db.Integer, primary_key=True)
+    room_number = db.Column(db.String(20), unique=True, nullable=False)
+    block = db.Column(db.String(50), nullable=True)            # e.g. 'Block A', 'Girls Wing'
+    room_type = db.Column(db.String(30), default='Dormitory')  # Dormitory, Private, Semi-Private
+    capacity = db.Column(db.Integer, default=4)
+    monthly_fee = db.Column(db.Float, default=0.0)
+    status = db.Column(db.String(20), default='Available')     # Available, Full, Maintenance
+    assignments = db.relationship('HostelAssignment', backref='room', lazy=True)
+
+class HostelAssignment(db.Model):
+    __tablename__ = 'hostel_assignments'
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('hostel_rooms.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    check_in_date = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    check_out_date = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(20), default='Active')  # Active, Checked Out
+
+# ====================================================================
+# 6. CLINIC & MEDICAL RECORDS
+# ====================================================================
+class MedicalRecord(db.Model):
+    __tablename__ = 'medical_records'
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    blood_group = db.Column(db.String(10), nullable=True)
+    allergies = db.Column(db.Text, nullable=True)
+    chronic_conditions = db.Column(db.Text, nullable=True)
+    emergency_contact = db.Column(db.String(150), nullable=True)
+    emergency_phone = db.Column(db.String(30), nullable=True)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow)
+    student = db.relationship('Student', backref='medical_record', uselist=False)
+
+class ClinicVisit(db.Model):
+    __tablename__ = 'clinic_visits'
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    visit_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    complaint = db.Column(db.Text, nullable=False)
+    diagnosis = db.Column(db.Text, nullable=True)
+    treatment = db.Column(db.Text, nullable=True)
+    medicine_dispensed = db.Column(db.String(255), nullable=True)
+    referred_to_hospital = db.Column(db.Boolean, default=False)
+    recorded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    student = db.relationship('Student', backref='clinic_visits', lazy=True)
+
+# ====================================================================
+# 7. VISITOR MANAGEMENT
+# ====================================================================
+class VisitorLog(db.Model):
+    __tablename__ = 'visitor_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    visitor_name = db.Column(db.String(150), nullable=False)
+    visitor_id_number = db.Column(db.String(50), nullable=True)    # NRC / Passport
+    phone = db.Column(db.String(30), nullable=True)
+    purpose = db.Column(db.String(255), nullable=False)
+    host_name = db.Column(db.String(150), nullable=True)           # Who they're visiting
+    host_department = db.Column(db.String(100), nullable=True)
+    sign_in_time = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    sign_out_time = db.Column(db.DateTime, nullable=True)
+    badge_number = db.Column(db.String(20), nullable=True)
+    recorded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+# ====================================================================
+# 8. ONLINE ADMISSIONS
+# ====================================================================
+class AdmissionApplication(db.Model):
+    __tablename__ = 'admission_applications'
+    id = db.Column(db.Integer, primary_key=True)
+    # Student info
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    date_of_birth = db.Column(db.Date, nullable=True)
+    gender = db.Column(db.String(10), nullable=True)
+    grade_applying = db.Column(db.String(30), nullable=False)
+    previous_school = db.Column(db.String(200), nullable=True)
+    # Parent / guardian info
+    parent_name = db.Column(db.String(150), nullable=False)
+    parent_phone = db.Column(db.String(30), nullable=False)
+    parent_email = db.Column(db.String(150), nullable=True)
+    parent_address = db.Column(db.Text, nullable=True)
+    # Application metadata
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(30), default='Pending')  # Pending, Interview, Approved, Rejected
+    notes = db.Column(db.Text, nullable=True)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+

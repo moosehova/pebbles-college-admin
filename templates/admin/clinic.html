@@ -1,0 +1,102 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+    <div>
+        <h2 class="page-title"><i class="fas fa-briefcase-medical"></i> Clinic &amp; Sick Bay</h2>
+        <p class="page-subtitle">Track student medical visits, treatments, and hospital referrals.</p>
+    </div>
+    <button onclick="document.getElementById('logVisitModal').style.display='flex'" class="owlio-btn" style="border:none;background:#e11d48;"><i class="fas fa-notes-medical"></i> Log Patient Visit</button>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;">
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #f59e0b;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#d97706;">{{ todays_visits|length }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Visits Today</div></div>
+    <div class="owlio-card" style="text-align:center;padding:20px;border-top:4px solid #dc2626;margin-bottom:0;"><div style="font-size:2rem;font-weight:900;color:#b91c1c;">{{ referred_today }}</div><div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;font-weight:700;">Hospital Referrals</div></div>
+</div>
+
+<div class="owlio-card" style="padding:0;overflow:hidden;">
+    <div class="owlio-header" style="padding:16px 24px;"><h3 class="owlio-title"><i class="fas fa-clipboard-list"></i> Recent Clinic Visits</h3></div>
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f8fafc;">
+                <tr>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Date & Time</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Student</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Complaint & Diagnosis</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Treatment Given</th>
+                    <th style="padding:12px 20px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:#64748b;">Referral</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for visit in recent_visits %}
+                <tr style="border-bottom:1px solid #f1f5f9;vertical-align:top;">
+                    <td style="padding:14px 20px;">
+                        <div style="font-size:0.8rem;font-weight:700;color:#1e293b;">{{ visit.visit_date.strftime('%d %b %Y') }}</div>
+                        <div style="font-size:0.7rem;color:#64748b;">{{ visit.visit_date.strftime('%H:%M') }}</div>
+                    </td>
+                    <td style="padding:14px 20px;font-weight:700;color:#1e293b;">
+                        {{ visit.student.first_name }} {{ visit.student.last_name }}
+                        {% if visit.student.medical_record and visit.student.medical_record.allergies %}
+                        <div style="font-size:0.65rem;color:#dc2626;margin-top:4px;"><i class="fas fa-exclamation-circle"></i> Allergy: {{ visit.student.medical_record.allergies }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding:14px 20px;font-size:0.8rem;color:#475569;">
+                        <strong>Complaint:</strong> {{ visit.complaint }}<br>
+                        <strong>Diagnosis:</strong> {{ visit.diagnosis or 'Pending' }}
+                    </td>
+                    <td style="padding:14px 20px;font-size:0.8rem;color:#475569;">
+                        {{ visit.treatment or 'N/A' }}
+                        {% if visit.medicine_dispensed %}
+                        <div style="margin-top:4px;color:#047857;font-weight:700;"><i class="fas fa-pills"></i> {{ visit.medicine_dispensed }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding:14px 20px;text-align:center;">
+                        {% if visit.referred_to_hospital %}
+                            <span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;">Referred</span>
+                        {% else %}
+                            <span style="color:#94a3b8;font-size:0.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="padding:40px;text-align:center;color:#94a3b8;">No clinic visits recorded recently.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Log Visit Modal -->
+<div id="logVisitModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:540px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#e11d48;font-weight:800;"><i class="fas fa-notes-medical"></i> Log Clinic Visit</h3><button onclick="document.getElementById('logVisitModal').style.display='none'" style="background:none;border:none;font-size:1.4rem;color:#94a3b8;cursor:pointer;">&times;</button></div>
+        <form action="{{ url_for('log_clinic_visit') }}" method="POST">
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Select Patient (Student) *</label>
+                <select name="student_id" class="owlio-select" required>
+                    <option value="">Search student...</option>
+                    {% for s in students %}<option value="{{ s.id }}">{{ s.first_name }} {{ s.last_name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label class="owlio-label">Chief Complaint *</label>
+                <input type="text" name="complaint" class="owlio-input" required placeholder="e.g. Headache and fever">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                <div><label class="owlio-label">Diagnosis</label><input type="text" name="diagnosis" class="owlio-input" placeholder="e.g. Mild malaria"></div>
+                <div><label class="owlio-label">Medicine Dispensed</label><input type="text" name="medicine_dispensed" class="owlio-input" placeholder="e.g. Paracetamol x2"></div>
+            </div>
+            <div style="margin-bottom:20px;">
+                <label class="owlio-label">Treatment Provided</label>
+                <textarea name="treatment" class="owlio-input" rows="2" placeholder="Describe care given..."></textarea>
+            </div>
+            <div style="margin-bottom:24px;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;color:#991b1b;font-weight:700;font-size:0.85rem;">
+                    <input type="checkbox" name="referred_to_hospital" style="accent-color:#e11d48;width:16px;height:16px;">
+                    Referred to External Hospital / Doctor
+                </label>
+            </div>
+            <div style="display:flex;gap:10px;"><button type="submit" class="owlio-btn" style="flex:1;border:none;background:#e11d48;"><i class="fas fa-save"></i> Save Record</button><button type="button" onclick="document.getElementById('logVisitModal').style.display='none'" class="owlio-btn" style="background:#f1f5f9;color:#475569;border:none;">Cancel</button></div>
+        </form>
+    </div>
+</div>
+{% endblock %}
