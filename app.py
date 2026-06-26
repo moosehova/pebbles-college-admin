@@ -584,6 +584,16 @@ def parent_portal():
 
     # Transport & Logistics
     route_assignment = RouteAssignment.query.filter_by(student_id=student.id).first()
+    transport_route = None
+    transport_vehicle = None
+    transport_driver = None
+    if route_assignment:
+        transport_route = TransportRoute.query.get(route_assignment.route_id)
+        if transport_route:
+            transport_vehicle = Vehicle.query.get(transport_route.vehicle_id)
+            if transport_route.driver_id:
+                from models import Staff
+                transport_driver = Staff.query.get(transport_route.driver_id)
 
     return render_template(
         'parent/portal.html',
@@ -596,7 +606,10 @@ def parent_portal():
         chart_data=chart_data,
         messages=messages,
         books=books,
-        route_assignment=route_assignment
+        route_assignment=route_assignment,
+        transport_route=transport_route,
+        transport_vehicle=transport_vehicle,
+        transport_driver=transport_driver
     )
 @app.route('/inbox')
 @login_required

@@ -129,13 +129,13 @@
     <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #fdba74; display: flex; flex-wrap: wrap; gap: 20px;">
         <div style="flex: 1; min-width: 150px;">
             <div style="font-size: 0.75rem; color: #9a3412; text-transform: uppercase;">Assigned Route</div>
-            <div style="font-weight: 800; color: #7c2d12;">{{ route_assignment.route.name }}</div>
+            <div style="font-weight: 800; color: #7c2d12;">{{ transport_route.route_name if transport_route else 'N/A' }}</div>
             <div style="font-size: 0.85rem; color: #ea580c; margin-top: 4px;"><i class="fas fa-map-marker-alt"></i> Pickup: {{ route_assignment.pickup_point or 'Main Stop' }}</div>
         </div>
         <div style="flex: 1; min-width: 150px;">
             <div style="font-size: 0.75rem; color: #9a3412; text-transform: uppercase;">Vehicle Info</div>
-            <div style="font-weight: 800; color: #7c2d12;">Bus {{ route_assignment.route.vehicle.plate_number }}</div>
-            <div style="font-size: 0.85rem; color: #ea580c; margin-top: 4px;"><i class="fas fa-id-card"></i> Driver: {{ route_assignment.route.driver_name or 'Standard Duty' }}</div>
+            <div style="font-weight: 800; color: #7c2d12;">Bus {{ transport_vehicle.plate_number if transport_vehicle else 'N/A' }}</div>
+            <div style="font-size: 0.85rem; color: #ea580c; margin-top: 4px;"><i class="fas fa-id-card"></i> Driver: {{ transport_driver.first_name + ' ' + transport_driver.last_name if transport_driver else 'Standard Duty' }}</div>
         </div>
     </div>
     {% else %}
